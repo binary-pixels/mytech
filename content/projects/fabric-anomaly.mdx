@@ -1,0 +1,40 @@
+---
+title: "Fabric Surface Anomaly Detection"
+description: "Unsupervised anomaly detection for textile inspection using PatchCore embedding with FAISS indexing, achieving 98.9% AUROC."
+date: "2023-06-20"
+category: "Industrial Inspection"
+tags: ["Anomaly Detection", "Unsupervised", "PyTorch", "FAISS"]
+image: "/images/projects/fabric-anomaly.jpg"
+tech: ["Python", "PyTorch", "FAISS", "WideResNet", "OpenCV"]
+github: "https://github.com"
+---
+
+## Overview
+
+Fabric inspection requires detecting subtle defects — snags, holes, density variations — with no defective samples available during training. This project adapts the PatchCore algorithm for high-resolution textile images.
+
+## Method
+
+Patch features are extracted from WideResNet-50 at layers $\ell_2$ and $\ell_3$, then aggregated into a memory bank $\mathcal{M}$:
+
+$$
+s^*(p) = \min_{m \in \mathcal{M}} \| \phi(p) - m \|_2
+$$
+
+The anomaly score for a full image is the maximum patch score:
+
+$$
+S = \max_{p \in P} s^*(p)
+$$
+
+## Coreset Subsampling
+
+The memory bank is compressed via greedy coreset selection to maintain $|\mathcal{M}| \leq 1\%$ of the original feature set with < 1% AUROC degradation. This reduces search time with FAISS from 120 ms to < 5 ms.
+
+## Results
+
+| Metric | Value |
+|---|---|
+| AUROC | 98.9% |
+| Inference Time | 12 ms/frame |
+| Training Samples Needed | 200 (normal only) |

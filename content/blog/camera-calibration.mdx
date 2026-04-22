@@ -1,0 +1,92 @@
+---
+title: "Camera Calibration: The Complete Mathematical Guide"
+description: "A rigorous walkthrough of Zhang's camera calibration method — homography, intrinsic recovery, and distortion modeling — with Python examples."
+date: "2024-02-15"
+tags: ["Calibration", "Mathematics", "Optics", "OpenCV"]
+image: "/images/blog/camera-calibration.jpg"
+featured: true
+---
+
+Camera calibration is one of the most foundational operations in computer vision. Yet it's often treated as a black box. In this post I'll unpack the full mathematical machinery.
+
+## The Pinhole Camera Model
+
+A 3D world point $\mathbf{X} = [X, Y, Z]^\top$ is projected to image point $\mathbf{x} = [u, v]^\top$ via the projection matrix $\mathbf{P}$:
+
+$$
+\lambda \begin{bmatrix} u \\ v \\ 1 \end{bmatrix} = \mathbf{K} [\mathbf{R} \mid \mathbf{t}] \begin{bmatrix} X \\ Y \\ Z \\ 1 \end{bmatrix}
+$$
+
+where $\mathbf{K}$ is the **intrinsic matrix**:
+
+$$
+\mathbf{K} = \begin{bmatrix} f_x & s & c_x \\ 0 & f_y & c_y \\ 0 & 0 & 1 \end{bmatrix}
+$$
+
+Here $f_x, f_y$ are focal lengths in pixels, $(c_x, c_y)$ is the principal point, and $s$ is the skew (nearly always zero for modern sensors).
+
+## Homography from a Planar Target
+
+Zhang's method uses a planar checkerboard ($Z=0$). Setting $Z=0$ collapses the projection to a homography $\mathbf{H}$:
+
+$$
+\lambda \tilde{\mathbf{x}} = \mathbf{K} \begin{bmatrix} \mathbf{r}_1 & \mathbf{r}_2 & \mathbf{t} \end{bmatrix} \tilde{\mathbf{X}}_w = \mathbf{H} \tilde{\mathbf{X}}_w
+$$
+
+$\mathbf{H}$ has 8 DOF and is estimated from $\geq 4$ point correspondences via DLT (Direct Linear Transform).
+
+## Recovering Intrinsics
+
+Each homography provides 2 constraints on $\mathbf{B} = \mathbf{K}^{-\top}\mathbf{K}^{-1}$ (a symmetric matrix with 6 unknowns):
+
+$$
+\mathbf{h}_i^\top \mathbf{B} \mathbf{h}_j = 0
+$$
+$$
+\mathbf{h}_1^\top \mathbf{B} \mathbf{h}_1 = \mathbf{h}_2^\top \mathbf{B} \mathbf{h}_2
+$$
+
+With $n \geq 3$ images we can solve for all 5 intrinsics using SVD.
+
+## Lens Distortion
+
+Radial distortion is the dominant aberration for most lenses. The distortion model:
+
+$$
+x_d = x(1 + k_1 r^2 + k_2 r^4 + k_3 r^6)
+$$
+
+where $r^2 = x^2 + y^2$ is the radial distance in normalized coordinates. Tangential distortion adds:
+
+$$
+\Delta x = 2p_1 xy + p_2(r^2 + 2x^2)
+$$
+
+Coefficients $(k_1, k_2, k_3, p_1, p_2)$ are estimated jointly with intrinsics via non-linear least squares.
+
+## Practical Tips
+
+- Use at least **15–20 images** with varied orientations.
+- Check reprojection error: < **0.3 px** RMS is excellent; > **1.0 px** signals problems.
+- Fisheye lenses need the Kannala-Brandt model (`cv2.fisheye` in OpenCV).
+- Avoid images where the board fills less than 20% of the frame — corners are poorly conditioned.
+
+```python
+import cv2
+import numpy as np
+
+# Detect corners
+ret, corners = cv2.findChessboardCorners(gray, (9, 6), None)
+
+# Refine to sub-pixel
+criteria = (cv2.TERM_CRITERIA_EPS + cv2.TERM_CRITERIA_MAX_ITER, 30, 0.001)
+corners = cv2.cornerSubPix(gray, corners, (11, 11), (-1, -1), criteria)
+
+# Calibrate
+ret, K, dist, rvecs, tvecs = cv2.calibrateCamera(
+    obj_points, img_points, gray.shape[::-1], None, None
+)
+print(f"RMS reprojection error: {ret:.4f} px")
+```
+
+The reprojection RMSE from `calibrateCamera` is your primary quality metric. Chase it below 0.3 px.
