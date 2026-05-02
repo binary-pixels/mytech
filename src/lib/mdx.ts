@@ -4,6 +4,7 @@ import matter from "gray-matter";
 import readingTime from "reading-time";
 import { compileMDX } from "next-mdx-remote/rsc";
 import remarkMath from "remark-math";
+import remarkGfm from "remark-gfm";
 import rehypeKatex from "rehype-katex";
 import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
@@ -56,7 +57,7 @@ export function getAllBlogs(): BlogMeta[] {
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
 const mdxOptions: any = {
   mdxOptions: {
-    remarkPlugins: [remarkMath],
+    remarkPlugins: [remarkMath, remarkGfm],
     rehypePlugins: [
       rehypeKatex,
       rehypeHighlight,
