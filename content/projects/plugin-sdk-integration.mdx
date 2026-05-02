@@ -1,0 +1,88 @@
+---
+title: "Embedding VisionLab into an Existing MES Controller"
+description: "Using the VisionLab Plugin SDK to integrate sub-pixel geometric measurement into a C++ upper-computer system in under a day, with zero changes to the host codebase framework."
+date: "2025-05-01"
+category: "System Integration"
+tags: ["Plugin SDK", "C API", "IPC", "Windows"]
+featured: false
+tech: ["C", "C++", "Plugin SDK", "Windows IPC", "Shared Memory"]
+---
+
+## Challenge
+
+A machine builder had an existing Qt-based MES controller managing conveyor, PLC, and sensor data. They needed to add circle-measurement capability for a new product line — but without restructuring the host application or taking on a heavy OpenCV/PyTorch dependency.
+
+The requirement: plug in vision as an isolated process, callable from existing C++ code.
+
+## Solution: VisionLab Plugin SDK
+
+VisionLab ships a pure-C plugin SDK (`PluginHostLauncher.h` + `PluginHostInterface.h`) that manages the entire lifecycle of the vision plugin process. Communication uses Windows shared memory (IPC), keeping inter-process latency under 2 ms.
+
+### Integration in 8 Lines
+
+```c
+#include "PluginHostLauncher.h"
+#include "PluginHostInterface.h"
+
+// 1. Launch the plugin process
+PluginHostLauncher* launcher =
+    PluginHostLauncher_Create("visionlab.exe");
+if (!PluginHostLauncher_Launch(launcher, 5000)) return;
+
+// 2. Get communication handle
+PluginHostHandle* host = PluginHostLauncher_GetHost(launcher);
+
+// 3. Send image + receive result
+PluginHostImage img = { frame.data, frame.cols, frame.rows, 1 };
+PluginHostResult result;
+PluginHost_SendAndWait(host, &img,
+    R"({"roi_cx":320,"roi_cy":240,"roi_inner":80,"roi_outer":120})",
+    &result, 3000);
+
+// 4. Parse JSON result
+printf("Center: %s\n", result.data);
+
+// 5. Cleanup (auto-kills plugin process)
+PluginHostLauncher_Destroy(launcher);
+```
+
+### UI Embedding Mode
+
+For applications that want the VisionLab parameter-tuning UI embedded directly into a window panel, the SDK provides a one-call embed API:
+
+```cpp
+PluginHostLauncher_SetUIMode(launcher, PLUGIN_UI_EMBEDDED);
+PluginHostLauncher_EmbedInto(launcher,
+    (void*)container->winId(), 0, 0, 640, 480);
+```
+
+The plugin window is reparented into the host container — no separate window appears.
+
+## Architecture
+
+```
+MES Controller (host, existing code)
+    │
+    │   PluginHostLauncher_Create / Launch
+    ▼
+VisionLab.exe (plugin process)
+    │  Shared Memory IPC  │
+    │  < 2 ms latency     │
+    ▼
+AlgoLib (circle/line/defect algorithms)
+    │
+    ▼
+JSON result → back to host via IPC
+```
+
+## Outcome
+
+| Dimension | Result |
+|---|---|
+| Integration time | < 1 day |
+| Host code changes | 0 (only new SDK calls added) |
+| New dependencies in host | None (plugin is a separate process) |
+| IPC round-trip latency | < 2 ms |
+| Algorithm accuracy | < 0.1 px (circle centre) |
+
+The machine builder shipped the new product line on schedule, without touching their existing motion-control or sensor-fusion code.

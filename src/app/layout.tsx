@@ -9,17 +9,17 @@ const geistMono = Geist_Mono({ variable: "--font-geist-mono", subsets: ["latin"]
 
 export const metadata: Metadata = {
   title: {
-    default: "VisionAI — Machine Vision & AI Engineer",
-    template: "%s | VisionAI",
+    default: "VisionLab — Machine Vision Toolkit",
+    template: "%s | VisionLab",
   },
   description:
-    "10 years of machine vision and AI expertise. Showcasing projects in industrial inspection, deep learning, 3D reconstruction, and mathematical foundations of computer vision.",
-  keywords: ["machine vision", "computer vision", "AI", "deep learning", "OpenCV", "PyTorch"],
+    "VisionLab is an open-source machine vision toolkit for industrial inspection, deep learning, 3D reconstruction, and computer vision research.",
+  keywords: ["machine vision", "computer vision", "AI", "deep learning", "OpenCV", "PyTorch", "VisionLab"],
   openGraph: {
     type: "website",
     locale: "en_US",
-    title: "VisionAI — Machine Vision & AI Engineer",
-    description: "10 years of machine vision and AI expertise.",
+    title: "VisionLab — Machine Vision Toolkit",
+    description: "Open-source machine vision toolkit for industrial inspection and AI research.",
   },
 };
 

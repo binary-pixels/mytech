@@ -9,18 +9,18 @@ import { getAllProjects, getAllBlogs } from "@/lib/mdx";
 const expertisePillars = [
   {
     icon: <Brain size={22} className="text-cyan-400" />,
-    title: "Deep Learning",
-    desc: "CNN, Transformer, YOLO, custom architectures for visual tasks",
+    title: "Sub-pixel Geometric Fitting",
+    desc: "Circle, line, ellipse, rectangle — all with RANSAC + Devernay sub-pixel edges, centre accuracy < 0.1 px",
   },
   {
     icon: <Cpu size={22} className="text-violet-400" />,
-    title: "Industrial Inspection",
-    desc: "Real-time defect detection, PCB inspection, surface analysis",
+    title: "AI Defect Detection",
+    desc: "DINOv2 + PatchCore unsupervised anomaly detection — train on 5 normal images, zero defect samples needed",
   },
   {
     icon: <Code2 size={22} className="text-cyan-400" />,
-    title: "Vision Tooling",
-    desc: "50+ open-source tools: calibration, measurement, segmentation",
+    title: "Plugin SDK Integration",
+    desc: "Pure-C API, Windows IPC, < 2 ms latency — embed VisionLab into any C/C++ host in 8 lines of code",
   },
 ];
 
@@ -41,23 +41,22 @@ export default function HomePage() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-cyan-400/30 bg-cyan-400/5 text-cyan-400 text-sm font-medium mb-8">
             <span className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
-            Available for collaboration
+            Open Source · Machine Vision Toolkit
           </div>
 
           {/* Heading */}
           <h1 className="text-4xl sm:text-6xl lg:text-7xl font-black leading-tight tracking-tight mb-6">
-            <span className="text-slate-100">Machine Vision</span>
+            <span className="gradient-text">VisionLab</span>
             <br />
-            <span className="gradient-text">Engineer & Researcher</span>
+            <span className="text-slate-100">Machine Vision Toolkit</span>
           </h1>
 
           <p className="text-slate-400 text-lg sm:text-xl leading-relaxed max-w-2xl mx-auto mb-10">
-            10 years at the intersection of{" "}
-            <span className="text-slate-200">optics</span>,{" "}
-            <span className="text-slate-200">mathematics</span>, and{" "}
-            <span className="text-slate-200">deep learning</span>. Building
-            intelligent visual systems for industrial, scientific, and research
-            applications.
+            A collection of open-source tools for{" "}
+            <span className="text-slate-200">industrial inspection</span>,{" "}
+            <span className="text-slate-200">3D reconstruction</span>, and{" "}
+            <span className="text-slate-200">deep learning</span> — built for
+            engineers who care about the math behind the pixels.
           </p>
 
           <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
@@ -82,8 +81,8 @@ export default function HomePage() {
       {/* ── Expertise Pillars ── */}
       <section className="max-w-6xl mx-auto px-4 sm:px-6 py-24">
         <div className="text-center mb-14">
-          <h2 className="text-3xl font-bold text-slate-100 mb-3">Core Expertise</h2>
-          <p className="text-slate-500">A decade of specialization across the visual AI stack</p>
+          <h2 className="text-3xl font-bold text-slate-100 mb-3">Core Capabilities</h2>
+          <p className="text-slate-500">Capabilities built into VisionLab</p>
         </div>
         <div className="grid md:grid-cols-3 gap-6">
           {expertisePillars.map((p) => (
@@ -105,7 +104,7 @@ export default function HomePage() {
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="text-3xl font-bold text-slate-100 mb-2">Featured Projects</h2>
-              <p className="text-slate-500">Real-world machine vision systems and research</p>
+              <p className="text-slate-500">Real-world use cases powered by VisionLab algorithms</p>
             </div>
             <Link href="/projects" className="text-cyan-400 text-sm hover:underline hidden sm:flex items-center gap-1">
               All projects <ArrowRight size={14} />
@@ -125,7 +124,7 @@ export default function HomePage() {
           <div className="flex items-end justify-between mb-10">
             <div>
               <h2 className="text-3xl font-bold text-slate-100 mb-2">Latest Writing</h2>
-              <p className="text-slate-500">Math, physics, and vision engineering deep-dives</p>
+              <p className="text-slate-500">Algorithm deep-dives and integration guides</p>
             </div>
             <Link href="/blog" className="text-cyan-400 text-sm hover:underline hidden sm:flex items-center gap-1">
               All posts <ArrowRight size={14} />

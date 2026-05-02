@@ -40,7 +40,7 @@ export default function Navbar() {
           <span className="text-2xl">👁</span>
           <span className="font-bold text-lg tracking-tight">
             <span className="gradient-text">Vision</span>
-            <span className="text-slate-300">AI</span>
+            <span className="text-slate-300">Lab</span>
           </span>
         </Link>
 

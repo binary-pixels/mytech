@@ -1,0 +1,96 @@
+---
+title: "Sub-Pixel Circle Fitting: Breaking the 0.1 px Barrier"
+description: "A deep dive into how RANSAC, sector-centroid sampling, and Devernay sub-pixel edge detection combine to achieve circle-centre accuracy below 0.1 pixels."
+date: "2026-04-25"
+tags: ["Circle Fitting", "RANSAC", "Sub-pixel", "Algorithm", "OpenCV"]
+featured: true
+---
+
+Pixel-level circle fitting is easy. Sub-pixel fitting — stable, robust, and accurate to a tenth of a pixel — requires three ideas working together. This post unpacks each one.
+
+## Why Pixel-Level Fitting Falls Short
+
+Standard Hough-circle detection and even basic least-squares fits operate on integer-coordinate edge pixels. The quantisation error alone introduces ~0.5 px bias, which is unacceptable for precision measurement (wafer holes, bearing races, lens apertures).
+
+To reach < 0.1 px, you need three upgrades:
+
+1. **Sub-pixel edge localisation** — move edge coordinates off the integer grid
+2. **Robust fitting** — reject outlier edges caused by noise, scratches, or partial occlusion
+3. **Uniform angular sampling** — prevent dense local edges from biasing the fit
+
+## Step 1 — Devernay Sub-Pixel Edge Localisation
+
+Canny produces edges snapped to integer pixels. Devernay's algorithm instead fits a 1-D quadratic to the gradient profile perpendicular to the edge:
+
+$$
+g(t) = a t^2 + b t + c
+$$
+
+The sub-pixel position is the quadratic's maximum:
+
+$$
+t^* = -\frac{b}{2a}
+$$
+
+Applied to each Sobel-filtered scan line, this moves the detected edge point to a floating-point coordinate with ~0.1 px localisation accuracy on clean industrial images.
+
+## Step 2 — Annular ROI + Sector Centroids
+
+Raw edge images contain hundreds of irrelevant edges (text, PCB traces, shadows). The algorithm restricts processing to a ring-shaped Region of Interest centred on the expected circle:
+
+```
+inner_radius < dist(p, roi_centre) < outer_radius
+```
+
+Inside the ring, points are bucketed into **24 angular sectors** (15° each). Each sector's centroid becomes one representative sample point. This achieves two things:
+
+- **Robustness to occlusion** — only sectors with insufficient points are skipped; the rest still vote
+- **Bias elimination** — a scratch producing 500 local edge points gets the same vote as a clean 10-point sector
+
+## Step 3 — RANSAC + Levenberg–Marquardt
+
+Three non-collinear points uniquely determine a circle. Given points $P_1, P_2, P_3$ the centre $(x_c, y_c)$ satisfies the linear system obtained by expanding:
+
+$$
+(x_i - x_c)^2 + (y_i - y_c)^2 = r^2 \quad \forall i \in \{1,2,3\}
+$$
+
+RANSAC samples 3 sector centroids per iteration, fits a candidate circle, counts how many of the remaining centroids are within `inlier_dist` pixels of that circle, and keeps the best hypothesis after 1000 iterations.
+
+The RANSAC winner is then passed to **Levenberg–Marquardt** with all inliers:
+
+$$
+\min_{x_c, y_c, r} \sum_{i \in \text{inliers}} \left( \sqrt{(x_i - x_c)^2 + (y_i - y_c)^2} - r \right)^2
+$$
+
+This final refinement eliminates the remaining discretisation bias and pushes accuracy below 0.1 px.
+
+## Accuracy Breakdown
+
+| Stage | Typical Centre Error |
+|---|---|
+| Hough (integer pixels) | ~0.5–1.0 px |
+| RANSAC on Canny edges | ~0.3–0.5 px |
+| + Sector centroids | ~0.2–0.3 px |
+| + Devernay sub-pixel edges | ~0.08–0.12 px |
+| + LM refinement | **< 0.1 px** |
+
+## Practical Code
+
+In VisionLab, the full pipeline is one API call:
+
+```cpp
+CircleFitParams p;
+p.roi_center = cv::Point2f(320, 240);
+p.roi_inner_radius = 80;
+p.roi_outer_radius = 120;
+p.ransac_iter = 1000;
+p.inlier_dist = 2.0f;
+p.use_devernay = true;
+
+cv::Point2f centre;
+float radius;
+fitCircleRobustAdvanced(gray, p, centre, radius);
+```
+
+Or via the Plugin SDK with a JSON parameter string — no OpenCV in the host process required.

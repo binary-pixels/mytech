@@ -9,6 +9,7 @@ import rehypeHighlight from "rehype-highlight";
 import rehypeSlug from "rehype-slug";
 import rehypeAutolinkHeadings from "rehype-autolink-headings";
 import type { ProjectMeta, BlogMeta } from "@/types";
+import { ArchDiagram } from "@/components/ArchDiagram";
 
 const contentRoot = path.join(process.cwd(), "content");
 
@@ -71,6 +72,7 @@ export async function getProjectContent(slug: string) {
   const { data, content } = matter(raw);
   const { content: mdxContent } = await compileMDX({
     source: content,
+    components: { ArchDiagram },
     options: mdxOptions,
   });
   return { meta: { slug, ...data } as ProjectMeta, content: mdxContent };
@@ -83,6 +85,7 @@ export async function getBlogContent(slug: string) {
   const rt = readingTime(content);
   const { content: mdxContent } = await compileMDX({
     source: content,
+    components: { ArchDiagram },
     options: mdxOptions,
   });
   return {

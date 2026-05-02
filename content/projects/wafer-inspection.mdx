@@ -1,0 +1,71 @@
+---
+title: "Sub-Pixel Circle Fitting for Wafer Via-Hole Inspection"
+description: "Using VisionLab's circle fitting algorithm to measure wafer via-hole roundness at sub-pixel accuracy (<0.1px) on a 100% full-inspection production line."
+date: "2024-11-20"
+category: "Geometric Measurement"
+tags: ["Circle Fitting", "RANSAC", "Sub-pixel", "C++"]
+featured: true
+tech: ["C++", "OpenCV", "VisionLab Plugin SDK", "Qt"]
+---
+
+## Background
+
+Via-hole roundness is a critical quality metric in PCB and semiconductor wafer fabrication. A deviation in hole circularity directly correlates with electrical impedance variance and long-term reliability risk. Traditional pixel-level inspection tools report ±1–2 px error — insufficient for holes smaller than 200 µm at 4× magnification.
+
+This project integrates VisionLab's `FitCircle` module into an existing MES-connected inspection station, replacing the legacy threshold-based AOI system.
+
+## Algorithm Pipeline
+
+VisionLab's circle fitting follows a multi-stage robust pipeline:
+
+```
+Annular ROI Masking → Edge Detection (Devernay subpixel) → Sector Segmentation (24×15°) → RANSAC 3-point Fit → Least-Squares Refinement
+```
+
+### Annular ROI
+
+Only pixels within the ring `[inner_radius, outer_radius]` around the estimated hole center are processed. This eliminates background clutter and reduces computation by 60–80%.
+
+```cpp
+// Approximately 8 lines to set up VisionLab plugin and call the algorithm
+PluginHostLauncher* launcher =
+    PluginHostLauncher_Create("visionlab.exe");
+PluginHostLauncher_Launch(launcher, 5000);
+PluginHostHandle* host = PluginHostLauncher_GetHost(launcher);
+
+PluginHostImage img = { frame.data, frame.cols, frame.rows, 1 };
+PluginHostResult result;
+PluginHost_SendAndWait(host, &img, paramsJson, &result, 3000);
+```
+
+### RANSAC + Least-Squares
+
+Three randomly sampled sector centroids uniquely determine a circle. The RANSAC loop runs 1000 iterations, each time counting inliers within `inlier_dist` pixels of the candidate circle. After convergence, all inliers are fed into a Levenberg–Marquardt least-squares refinement:
+
+$$
+\min_{x_c, y_c, r} \sum_{i} \left(\sqrt{(x_i - x_c)^2 + (y_i - y_c)^2} - r\right)^2
+$$
+
+### Devernay Subpixel Edge
+
+Unlike Canny (which snaps to integer pixel coordinates), Devernay's algorithm localises edges at sub-pixel positions by fitting a 1D quadratic to the gradient profile perpendicular to the edge direction:
+
+$$
+x^* = x - \frac{g'(x)}{g''(x)}
+$$
+
+This is the primary contributor to the < 0.1 px centre accuracy.
+
+## Results
+
+| Metric | Value |
+|---|---|
+| Centre accuracy (σ) | **< 0.1 px** |
+| Radius accuracy (σ) | < 0.2 px |
+| Processing time per hole | < 15 ms |
+| False-reject rate | 0.08% |
+| Throughput | 240 wafers / hr |
+
+## Integration
+
+The VisionLab Plugin SDK exposes a pure-C API, so the inspection station's existing C++ controller required no framework changes. The plugin process communicates via Windows shared memory (IPC), keeping latency under 2 ms per frame transfer.

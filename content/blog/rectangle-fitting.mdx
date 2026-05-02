@@ -1,0 +1,103 @@
+---
+title: "Rectangle Fitting: Sequential Four-Edge RANSAC with Orthogonality Constraints"
+description: "VisionLab fits rectangles by finding four edges sequentially with RANSAC, enforcing parallel and perpendicular constraints at each step — more robust than fitting all edges simultaneously."
+date: "2026-04-10"
+tags: ["Rectangle Fitting", "RANSAC", "Geometric Fitting", "Sub-pixel", "Algorithm"]
+featured: false
+---
+
+Rectangle fitting is harder than it looks. You cannot just detect all edges and label them — the algorithm needs to know which edges are parallel, which are perpendicular, and how to handle partial occlusion where one or two sides may be missing. VisionLab solves this with a **sequential four-edge RANSAC** that bakes geometric constraints directly into the search order.
+
+## Why Simultaneous Fitting Fails
+
+The naive approach — detect all edges, then try to group them into two parallel pairs — produces combinatorial ambiguity. On a real part image, there may be 10–30 significant edge segments, and selecting the four that form a consistent rectangle from $\binom{30}{4} = 27,405$ combinations is expensive and error-prone.
+
+Sequential RANSAC reduces this to four small, constrained sub-problems.
+
+## Sequential Four-Edge Algorithm
+
+```
+Step 1: RANSAC on all edge points → Line 1 (most-supported edge)
+Step 2: Remove Line 1 inliers. RANSAC with parallel constraint → Line 2
+         angle constraint:  |θ₂ − θ₁| < angle_tolerance
+         distance constraint: height_min < dist(L1, L2) < width_max
+Step 3: Remove Lines 1+2 inliers. RANSAC with perpendicular constraint → Line 3
+         angle constraint:  |θ₃ − θ₁ − 90°| < angle_tolerance
+Step 4: Remove Lines 1+2+3 inliers. RANSAC with parallel-to-Line-3 constraint → Line 4
+         angle constraint:  |θ₄ − θ₃| < angle_tolerance
+         distance constraint: height_min < dist(L3, L4) < width_max
+```
+
+After four lines are found, their pairwise intersections give the four corner points.
+
+## The Parallel Distance Constraint
+
+Measuring the pixel distance between two parallel lines is not trivial because the Hough-space $\rho$ values are not directly comparable when lines have different normal vector orientations. VisionLab uses a **projection method**:
+
+Given Line 1 in normal form $c_1 x + s_1 y = r_1$ and candidate Line 2 $c_2 x + s_2 y = r_2$:
+
+$$
+r_1^{\text{proj}} = (c_1 c_2 + s_1 s_2) \cdot r_1
+$$
+
+$$
+d = |r_2 - r_1^{\text{proj}}|
+$$
+
+This gives the true pixel distance between the two parallel lines regardless of their common orientation.
+
+## Corner Point Calculation
+
+Each pair of non-parallel lines intersects at exactly one point. Given lines in normal form:
+
+$$
+\text{Line A:}\ c_1 x + s_1 y = r_1 \qquad \text{Line B:}\ c_2 x + s_2 y = r_2
+$$
+
+$$
+\det = c_1 s_2 - c_2 s_1
+$$
+
+$$
+x = \frac{r_1 s_2 - r_2 s_1}{\det}, \quad y = \frac{-r_1 c_2 + r_2 c_1}{\det}
+$$
+
+With four corners computed, `cv::minAreaRect` fits the final rotated rectangle and validates aspect ratio.
+
+## Angle Normalisation for Perpendicularity
+
+Lines have a 180° ambiguity in their normal direction. The perpendicularity check must account for this:
+
+```cpp
+float angleDiff90(float a, float b) {
+    float d = std::abs(norm180(a) - norm180(b));
+    if (d > 90.f) d = 180.f - d;
+    return d;   // should be close to 90° for perpendicular lines
+}
+```
+
+## Accuracy and Parameters
+
+| Parameter | Role |
+|---|---|
+| `angle_tolerance` | Max deviation from parallel/perpendicular (typically 5–10°) |
+| `height_min / width_max` | Expected rectangle width range in pixels |
+| `ransac_iter` | Iterations per edge (500–1000) |
+| `inlier_dist` | Point-to-line distance threshold (1–3 px) |
+
+Expected corner accuracy: **±0.5 px** under clean edges. Degraded to ±1–2 px when two opposite sides have significant occlusion.
+
+## Robustness to Partial Occlusion
+
+Because each edge is found independently with its own RANSAC, a partially occluded side still produces a valid line as long as > `min_inliers` points remain on that side. Even with one side 60% occluded, the algorithm typically recovers all four corners.
+
+## Algorithm Comparison Summary
+
+| Shape | Min points | Accuracy | Speed | Complexity |
+|---|---|---|---|---|
+| Circle | 3 | ±0.1 px | Fast | Low |
+| Line | 2 | ±0.2 px | Very fast | Low |
+| Ellipse | 5 | ±0.3 px | Medium | Medium |
+| Rectangle | 8 | ±0.5 px | Slow | High |
+
+Rectangle fitting is the most expensive because it runs four sequential RANSAC passes. For time-critical applications, restrict the search ROI tightly around the expected part location.

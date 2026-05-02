@@ -9,10 +9,9 @@ interface StatItem {
 }
 
 const stats: StatItem[] = [
-  { value: 100, label: "Projects Delivered", suffix: "+" },
-  { value: 10, label: "Years Experience", suffix: "" },
-  { value: 50, label: "Vision Tools Built", suffix: "+" },
-  { value: 20, label: "Publications & Talks", suffix: "+" },
+  { value: 6, label: "Algorithm Modules", suffix: "" },
+  { value: 5, label: "Training Images (PatchCore)", suffix: "+" },
+  { value: 8, label: "Lines to Integrate SDK", suffix: "" },
 ];
 
 function useCountUp(target: number, duration = 1500, start = false) {
@@ -62,7 +61,7 @@ function StatCard({ value, label, suffix = "", delay }: StatItem & { delay: numb
 
 export default function StatsCounter() {
   return (
-    <div className="grid grid-cols-2 sm:grid-cols-4 gap-8 py-8 border-t border-slate-800">
+    <div className="grid grid-cols-3 gap-8 py-8 border-t border-slate-800">
       {stats.map((s, i) => (
         <StatCard key={s.label} {...s} delay={i * 150} />
       ))}

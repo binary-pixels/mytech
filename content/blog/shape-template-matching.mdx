@@ -1,0 +1,86 @@
+---
+title: "Shape Template Matching: Rotation-Invariant Localisation Without Retraining"
+description: "How VisionLab's gradient-orientation based template matching locates parts at any angle and scale — and why it outperforms classic NCC on industrial images."
+date: "2026-03-28"
+tags: ["Template Matching", "Shape Matching", "Gradient Orientation", "Localization"]
+featured: false
+---
+
+Template matching is the workhorse of industrial vision localisation. You have a reference image of a part; you want to find that part in a scene image, even if it has rotated or shifted. The classic approach — normalised cross-correlation (NCC) — breaks down the moment the part rotates more than a few degrees. VisionLab's shape-based matcher handles arbitrary rotation without any retraining.
+
+## Why NCC Fails Under Rotation
+
+NCC computes pixel-by-pixel intensity similarity between template and scene patch. Rotation changes pixel intensities at every position, so a 30° rotation can drop NCC score from 0.95 to below threshold even on a perfect match.
+
+The fix: match on **gradient orientation** rather than pixel intensity.
+
+## Gradient Orientation: What It Is
+
+For each pixel in the template, compute the image gradient $(G_x, G_y)$ using Sobel filters. The orientation of that gradient:
+
+$$
+\theta = \text{atan2}(G_y, G_x)
+$$
+
+is a **direction**, not a magnitude. Crucially:
+
+- It is **invariant to uniform illumination changes** (brightness shift does not change gradient direction)
+- It rotates **rigidly** with the object — if the part rotates by $\alpha$, every gradient orientation shifts by exactly $\alpha$
+
+## The Matching Score
+
+At each candidate position and rotation hypothesis $(\Delta x, \Delta y, \alpha)$, the matching score is:
+
+$$
+S = \frac{1}{N} \sum_{i=1}^{N} \cos\bigl(\theta_i^{\text{scene}} - \theta_i^{\text{template}} - \alpha\bigr)
+$$
+
+$\cos = 1$ when orientations align perfectly; $\cos = -1$ when they are anti-parallel. Summing over all $N$ template edge pixels gives a robust score in $[-1, 1]$.
+
+This is evaluated on a coarse rotation grid (e.g., every 1°) over the search range. The candidate with the highest score becomes the initial hypothesis.
+
+## Hierarchical Search (Image Pyramid)
+
+Exhaustive search over all positions × all rotations is slow on full-resolution images. VisionLab uses a **Gaussian image pyramid**:
+
+```
+Level 2 (1/4 res): coarse search, large step → top-K candidates
+Level 1 (1/2 res): refine top-K at finer step
+Level 0 (full res): sub-pixel refinement of top-1
+```
+
+Typical speedup: 10–30× over brute-force full-resolution search.
+
+## Upstream for Defect Detection
+
+Shape matching is not just a standalone tool — it is the **upstream localization stage** in VisionLab's Golden Template defect detection pipeline:
+
+```
+Scene image
+    ↓
+FitTemplateMatch → centre (x, y), angle θ, bounding rect
+    ↓
+warpAffine crop → aligned_crop (same pose as golden template)
+    ↓
+ECC sub-pixel alignment → pixel-level difference → defect regions
+```
+
+Without accurate localisation, the pixel-level diff would contain large alignment residuals that look like defects. Shape matching eliminates position and rotation error before the sensitive diff stage runs.
+
+## Practical Parameters
+
+| Parameter | Effect | Recommendation |
+|---|---|---|
+| `angle_range` | ± search range (degrees) | Set to expected max rotation |
+| `angle_step` | Rotation grid step | 1° for precision; 3° for speed |
+| `min_score` | Match threshold | 0.7–0.85 for industrial parts |
+| `pyramid_levels` | Search speed vs coverage | 3 levels for large scenes |
+
+## Robustness Comparison
+
+| Condition | NCC | Gradient Orientation |
+|---|---|---|
+| Illumination change | ✗ Fails | ✅ Robust |
+| Rotation > 10° | ✗ Fails | ✅ Handles ±180° |
+| Partial occlusion | Partial | ✅ Score degrades gracefully |
+| Texture-less metal | ✅ OK | ✅ OK (uses edges) |

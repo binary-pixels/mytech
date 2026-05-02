@@ -1,0 +1,126 @@
+---
+title: "YOLO Dataset Annotation and AI-Assisted Auto-Labelling"
+description: "A practical guide to building YOLO training datasets with VisionLab's AnnotateTab — including directory layout, label format, 4K tiling, and using a trained model to speed up annotation."
+date: "2026-03-15"
+tags: ["YOLO", "Dataset", "Annotation", "Auto-labelling", "Deep Learning"]
+featured: false
+---
+
+The quality of your training dataset determines the ceiling of your YOLO model's performance. Getting the data pipeline right — directory structure, label format, 4K handling, and auto-labelling — is where most projects succeed or fail before training even starts.
+
+## Dataset Directory Structure
+
+VisionLab's AnnotateTab recognises two layouts. The recommended one:
+
+```
+dataset_root/
+  classes.txt        ← one class name per line
+  images/
+    001.jpg
+    002.jpg
+  labels/
+    001.txt           ← YOLO format annotations
+    002.txt
+```
+
+`classes.txt` example:
+```
+defect
+chip
+scratch
+```
+
+Each label file contains one bounding box per line:
+```
+<class_id> <cx_norm> <cy_norm> <w_norm> <h_norm>
+```
+
+All coordinates are normalised to `[0, 1]` relative to image width/height. For a 640×480 image, a box at pixel (200, 120) with size 80×60:
+
+```
+0  0.3125  0.250  0.125  0.125
+```
+
+## Annotation Workflow in AnnotateTab
+
+1. **Open Folder** → select `dataset_root/`
+2. **Add Class** → type class names (must match `classes.txt`)
+3. Draw bounding boxes by drag — they auto-save to `labels/`
+4. Navigate with **A / D** keys or arrow buttons
+5. **Save All** — writes all pending labels at once
+
+> Always create `classes.txt` before annotating. If the file is missing when you hit Save, class IDs may be assigned in a different order and corrupt your dataset.
+
+## Extracting Frames from Video
+
+Rather than photographing parts manually, extract frames from a video of the production line:
+
+```bash
+python extract_frames.py
+# every 3rd frame, first 300 frames → ~100 images
+# output: tests/dataset/<class>/1/
+```
+
+Aim for images that cover the full range of **lighting conditions**, **part orientations**, and **defect sizes** you expect in production.
+
+## Handling 4K Images
+
+YOLOv8's default input is 640×640. Directly downscaling a 4K frame (3840×2160) shrinks a 300 px defect to ~50 px — small enough to drop off the detection map entirely.
+
+**Option A — Increase `img_size` to 1280** (simple, needs ≥ 8 GB VRAM)
+
+**Option B — Tile the dataset** (recommended for 4K):
+
+```bash
+python tile_dataset.py \
+  --input  tests/dataset/parts/raw \
+  --output tests/dataset/parts/tiled
+# 640×640 tiles with 160 px overlap
+# one 4K image → 30–50 training crops
+```
+
+Tiling preserves the original pixel scale of defects, which dramatically improves recall on small targets. As a bonus, it multiplies your training set size by 30–50× without collecting more images.
+
+## Train / Val Split
+
+```bash
+python split_dataset.py \
+  --input     tests/dataset/parts/tiled \
+  --output    tests/dataset/parts/split \
+  --val-ratio 0.2
+```
+
+Output:
+```
+split/
+  images/train/   images/val/
+  labels/train/   labels/val/
+  classes.txt
+  dataset.yaml    ← ready for YOLOv8
+```
+
+## AI-Assisted Auto-Labelling
+
+Once you have a first-pass trained model (`best.onnx`), feed it back into VisionLab's annotation UI to pre-label new images automatically:
+
+```
+New images → best.onnx inference → pre-filled bounding boxes
+                                          ↓
+                                 Human reviewer corrects
+                                 wrong/missing boxes
+                                          ↓
+                                 Save confirmed labels
+```
+
+In practice, a model trained on 200 manually-labelled images can correctly pre-label 70–85% of new images, reducing annotation time per image from ~2 minutes to ~20 seconds.
+
+## Quick Reference: How Many Images?
+
+| Dataset size | Expected mAP50 | Notes |
+|---|---|---|
+| 50–100 images | 0.60–0.75 | Proof-of-concept only |
+| 200–500 images | 0.80–0.88 | Production-viable for simple defects |
+| 500–2000 images | 0.88–0.94 | Good for multi-class or small defects |
+| > 2000 images | 0.94+ | High-confidence, rare-defect scenarios |
+
+With 4K tiling, 50 raw images can become 2000+ training crops — often enough to reach production-viable accuracy without collecting more data.

@@ -1,0 +1,67 @@
+---
+title: "Zero-Shot Surface Defect Detection with PatchCore"
+description: "Deploying VisionLab's DINOv2 + PatchCore anomaly detection on a metal casting line — trained on 8 normal-sample images, no defect images required."
+date: "2025-02-10"
+category: "Defect Detection"
+tags: ["PatchCore", "DINOv2", "Anomaly Detection", "Deep Learning"]
+featured: true
+tech: ["C++", "LibTorch", "DINOv2", "FAISS", "OpenCV", "VisionLab Plugin SDK"]
+---
+
+## The Problem with Traditional Defect Detection
+
+Collecting labelled defect images is the biggest bottleneck in industrial vision. Defects are rare by design — a good process produces very few. Building a supervised classifier requires months of sample collection before you can even start training.
+
+VisionLab's PatchCore module inverts this requirement: **train only on normal (good) images**. The system memorises what "normal" looks like, then flags any test image that deviates from that memory.
+
+## How PatchCore Works
+
+```
+Training (one-time, ~2 min for 10 images):
+  Normal images → DINOv2 patch features → Coreset sampling → Memory Bank (.pt)
+
+Inference (< 50 ms per image):
+  Test image → DINOv2 features → Nearest-neighbour distance to Memory Bank
+                                         ↓
+                               Per-patch anomaly score → Heatmap overlay
+```
+
+### DINOv2 as Backbone
+
+DINOv2-S is a Vision Transformer pre-trained via self-supervised learning on 142 M images. It extracts spatially-aware, semantically rich patch features without any task-specific fine-tuning.
+
+For a 224×224 input, the model outputs a `[256, 384]` feature matrix — 256 patch positions, each described by a 384-dimensional vector.
+
+### Coreset Subsampling
+
+Raw feature matrices from 10 training images contain ~2,560 vectors. Storing all of them would make nearest-neighbour search slow. Greedy coreset sampling retains only 10% of vectors while preserving full coverage of the feature space:
+
+$$
+S^* = \arg\min_{S \subseteq \mathcal{F},\, |S|=K} \max_{f \in \mathcal{F}} \min_{s \in S} \|f - s\|_2
+$$
+
+### Anomaly Score
+
+For each patch $q$ in the test image, the anomaly score is the cosine distance to its nearest neighbour in the Memory Bank $\mathcal{M}$:
+
+$$
+\text{score}(q) = \min_{m \in \mathcal{M}} \left(1 - \frac{q \cdot m}{\|q\|\,\|m\|}\right)
+$$
+
+Scores are spatially upsampled and Gaussian-smoothed to produce a human-readable heatmap.
+
+## Deployment Results
+
+| Metric | Value |
+|---|---|
+| Training images (normal only) | **8** |
+| Training time | ~2 min (CPU) |
+| AUROC on test set | 97.4% |
+| Inference time | < 50 ms / image |
+| Defect image requirement | **Zero** |
+
+## Why This Matters
+
+The factory started inspection on the same day VisionLab was installed. No defect sample collection, no annotation, no model training from scratch. The Memory Bank was built from 8 images of known-good castings taken during a single production run.
+
+This is the key advantage: **you can inspect a brand-new product on day one**.

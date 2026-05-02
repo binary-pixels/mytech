@@ -1,0 +1,118 @@
+---
+title: "Integrating a Vision Algorithm Plugin in 8 Lines of Code"
+description: "VisionLab's Plugin SDK lets you add sub-pixel geometric measurement or AI defect detection to any C/C++ application — without taking on OpenCV or PyTorch as host dependencies."
+date: "2026-05-01"
+tags: ["Plugin SDK", "C API", "Integration", "IPC"]
+featured: false
+---
+
+Adding machine vision to an existing controller used to mean rewriting your build system, fighting OpenCV version conflicts, and shipping a Python runtime to the factory floor. VisionLab's Plugin SDK is designed to eliminate all of that.
+
+## The Architecture
+
+<ArchDiagram />
+
+The plugin runs as a **separate process**.Your host application has no OpenCV, no PyTorch, no Qt dependency at all — just the two header files and a small static library.
+
+## Minimal Integration (8 Lines)
+
+```c
+#include "PluginHostLauncher.h"
+#include "PluginHostInterface.h"
+
+PluginHostLauncher* launcher =
+    PluginHostLauncher_Create("visionlab.exe");   // 1. create
+PluginHostLauncher_Launch(launcher, 5000);         // 2. launch (5s timeout)
+
+PluginHostHandle* host =
+    PluginHostLauncher_GetHost(launcher);          // 3. get handle
+
+PluginHostImage img = {mat.data, mat.cols, mat.rows, 1};
+PluginHostResult result;
+PluginHost_SendAndWait(                            // 4. send image
+    host, &img,
+    R"({"roi_cx":320,"roi_cy":240,
+        "roi_inner":80,"roi_outer":120})",
+    &result, 3000);
+
+printf("Result: %s\n", result.data);              // 5. use JSON result
+PluginHostLauncher_Destroy(launcher);             // 6. cleanup (auto-kill plugin)
+```
+
+The result JSON contains the algorithm output — circle centre and radius, line endpoints, or anomaly score and bounding box depending on which mode you configured.
+
+## Embedding the UI Panel
+
+For applications that want the VisionLab parameter-tuning UI embedded inside their own window (not as a separate popup):
+
+```cpp
+PluginHostLauncher_SetUIMode(launcher, PLUGIN_UI_EMBEDDED);
+PluginHostLauncher_EmbedInto(
+    launcher,
+    (void*)myContainer->winId(),  // HWND on Win32
+    0, 0, 640, 480                // position and size
+);
+PluginHostLauncher_Launch(launcher, 5000);
+```
+
+The VisionLab window becomes a child of your container — fully integrated visually with no separate process window visible to the operator.
+
+## High-Throughput Async Mode
+
+For batch inspection (e.g., 100 frames per burst), use the async API to submit all frames without blocking, then collect results:
+
+```c
+// Submit all 100 frames (~50 ms total)
+for (int i = 0; i < 100; i++) {
+    PluginHostAsyncRequest req = {
+        .request_id = i,
+        .image = {images[i].data, w, h, 1},
+        .params_json = params
+    };
+    PluginHost_SendAsyncCommand(host, &req);
+}
+
+// Collect results as they arrive (~500–700 ms total)
+int done = 0;
+while (done < 100) {
+    PluginHostResult result;
+    if (PluginHost_PollResult(host, &result, 50)) {
+        handleResult(result.request_id, result.data);
+        done++;
+    }
+}
+// Total: ~550 ms vs ~5000 ms for sequential sync calls
+```
+
+## What Goes in the params JSON?
+
+Each algorithm reads its configuration from the JSON string you pass per call, so you can change parameters per frame without restarting the plugin.
+
+```json
+// Circle fitting
+{
+  "roi_cx": 320, "roi_cy": 240,
+  "roi_inner": 80, "roi_outer": 120,
+  "radius_min": 90, "radius_max": 115,
+  "ransac_iter": 1000, "inlier_dist": 2.0,
+  "use_devernay": true
+}
+
+// PatchCore defect detection
+{
+  "memory_bank": "part_memory_bank.pt",
+  "threshold": 0.18,
+  "return_heatmap": false
+}
+```
+
+## Checklist for First Integration
+
+1. Copy `visionlab.exe` + `license.json` next to your executable
+2. Add `PluginHostLauncher.h`, `PluginHostInterface.h` to your include path
+3. Link `PluginSDK.lib` (static, no runtime DLLs required in host)
+4. Call `PluginHostLauncher_Create` → `Launch` → `GetHost`
+5. Send frames with `PluginHost_SendAndWait` or the async variant
+6. Parse the JSON result string
+
+That's it. The plugin process handles all computer vision dependencies internally.

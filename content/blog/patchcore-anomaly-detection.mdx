@@ -1,0 +1,84 @@
+---
+title: "No Defect Samples Needed: How PatchCore Detects Anomalies"
+description: "PatchCore flips the defect-detection problem on its head — instead of learning what defects look like, it memorises what normal looks like. Here's the math behind it."
+date: "2026-04-18"
+tags: ["PatchCore", "DINOv2", "Anomaly Detection", "Deep Learning"]
+featured: true
+---
+
+The biggest bottleneck in industrial defect detection isn't the algorithm — it's the data. Defects are rare by design, so you can spend months on a production line collecting enough labelled defect images to train a classifier.
+
+PatchCore sidesteps this entirely. You only need **images of good parts**.
+
+## The Core Idea
+
+Traditional supervised detection learns: *"this texture = scratch, this shape = dent."*
+
+PatchCore asks instead: *"how far is this image from everything we've seen that's normal?"*
+
+```
+Training (normal images only):
+  Good images → Feature extraction → Memory Bank
+
+Inference:
+  Test image → Feature extraction → Distance to Memory Bank
+                                           ↓
+                                   Small → Normal
+                                   Large → Anomaly (+ heatmap)
+```
+
+If a test patch is far from every normal patch in the Memory Bank, it's anomalous. No defect label needed.
+
+## Why DINOv2 Instead of ResNet?
+
+PatchCore's original paper uses ImageNet-pretrained ResNet features. VisionLab uses **DINOv2-S** — a Vision Transformer trained with self-supervised learning on 142 M images.
+
+DINOv2's patch tokens have a key property: **spatial semantics are naturally separated**. Patches of smooth metal cluster together; patches with a scratch cluster away. This makes the nearest-neighbour distance signal cleaner, reducing false positives on parts with complex textures.
+
+For a 224×224 input, DINOv2-S produces a `[256, 384]` feature map — 256 spatial positions, each with a 384-dimensional descriptor.
+
+## Coreset Sampling: Keeping the Memory Bank Small
+
+Ten training images produce ~2,560 patch feature vectors. Storing all of them makes inference O(query × 2560) per patch — too slow for production.
+
+Greedy coreset sampling selects a representative subset $S \subseteq \mathcal{F}$ of size $K = 0.1 \times |\mathcal{F}|$:
+
+$$
+S^* = \arg\min_{S,\, |S|=K} \max_{f \in \mathcal{F}} \min_{s \in S} \|f - s\|_2
+$$
+
+The algorithm greedily picks the point farthest from all already-selected points at each step. The resulting 256 vectors cover the original feature space almost as well as all 2,560 — with 10× faster inference.
+
+## Anomaly Score per Patch
+
+At inference, for each query patch $q$:
+
+$$
+\text{score}(q) = \min_{m \in \mathcal{M}} \left(1 - \frac{q \cdot m}{\|q\| \cdot \|m\|}\right)
+$$
+
+Cosine distance is used instead of Euclidean because DINOv2 features lie on a hypersphere — cosine distance is more stable across feature magnitude variations.
+
+The per-patch scores form a spatial map that is then upsampled to the original image resolution and Gaussian-smoothed, producing a heatmap that highlights exactly where the anomaly is located.
+
+## How Few Images Are Really Enough?
+
+| Training images | AUROC (metal casting dataset) |
+|---|---|
+| 3 | 91.2% |
+| 5 | 94.8% |
+| 8 | 97.4% |
+| 20 | 98.1% |
+
+With 5–10 good-part images you get production-viable accuracy. Coverage matters more than quantity — make sure the training set shows the part under all lighting and pose variations you expect at runtime.
+
+## Running PatchCore in VisionLab
+
+Training and Memory Bank construction are done once via a Python script:
+
+```bash
+python export_transformer.py          # export DINOv2 backbone → dinov2_vits14.pt
+python train_defect_transformer.py    # build memory bank → part_memory_bank.pt
+```
+
+At runtime, the C++ plugin loads the `.pt` files with LibTorch and serves inference results over IPC to your host application — no Python runtime needed in production.

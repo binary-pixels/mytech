@@ -3,95 +3,76 @@ import ToolCard from "@/components/ToolCard";
 import type { Tool } from "@/types";
 
 export const metadata: Metadata = {
-  title: "Tools",
-  description: "Open-source machine vision tools and utilities built over 10 years.",
+  title: "Features",
+  description: "VisionLab algorithm modules: sub-pixel geometric fitting, AI defect detection, and Plugin SDK integration.",
 };
 
 const tools: Tool[] = [
   {
-    id: "calkit",
-    name: "CalKit",
+    id: "circle-fit",
+    name: "Circle Fitting",
     description:
-      "A Python library for camera and LiDAR calibration. Supports Zhang's method, fisheye, multi-camera, and hand-eye calibration.",
-    category: "Calibration",
-    tags: ["Python", "OpenCV", "NumPy"],
-    icon: "📐",
-    github: "https://github.com",
+      "Annular ROI + 24-sector centroid sampling + RANSAC + Levenberg–Marquardt refinement. Centre accuracy < 0.1 px. Supports both Canny and Devernay sub-pixel edge modes.",
+    category: "Geometric Fitting",
+    tags: ["C++", "RANSAC", "Sub-pixel", "OpenCV"],
+    icon: "⭕",
     featured: true,
   },
   {
-    id: "defectron",
-    name: "Defectron",
+    id: "line-fit",
+    name: "Line Fitting",
     description:
-      "Real-time surface defect detection engine. Runs at 120 fps on edge GPU hardware with configurable sensitivity thresholds.",
-    category: "Inspection",
-    tags: ["C++", "CUDA", "TensorRT"],
-    icon: "🔍",
-    github: "https://github.com",
-    demo: "https://example.com",
+      "Rotated-rectangle ROI with segmented centroid sampling along the line direction. RANSAC + least-squares refinement. Endpoint accuracy < 0.2 px.",
+    category: "Geometric Fitting",
+    tags: ["C++", "RANSAC", "Sub-pixel", "OpenCV"],
+    icon: "📏",
+  },
+  {
+    id: "ellipse-fit",
+    name: "Ellipse Fitting",
+    description:
+      "Elliptical annular ROI with eccentricity constraint filtering. Robust to partial occlusion and non-uniform illumination.",
+    category: "Geometric Fitting",
+    tags: ["C++", "RANSAC", "OpenCV"],
+    icon: "🥚",
+  },
+  {
+    id: "rect-fit",
+    name: "Rectangle Fitting",
+    description:
+      "Four-edge detection via Hough / RANSAC with right-angle orthogonality constraint. Outputs four corner points in sub-pixel coordinates.",
+    category: "Geometric Fitting",
+    tags: ["C++", "Hough", "RANSAC", "OpenCV"],
+    icon: "▭",
+  },
+  {
+    id: "template-match",
+    name: "Shape Template Matching",
+    description:
+      "Gradient-orientation based rotation-invariant template matching. Robust to illumination changes and partial occlusion. No retraining needed.",
+    category: "Feature Matching",
+    tags: ["C++", "OpenCV", "Rotation-invariant"],
+    icon: "🔎",
     featured: true,
   },
   {
-    id: "depthcraft",
-    name: "DepthCraft",
+    id: "patchcore",
+    name: "PatchCore Defect Detection",
     description:
-      "Stereo and structured-light 3D reconstruction toolkit. Exports to PLY/OBJ, integrates with ROS2.",
-    category: "3D Vision",
-    tags: ["Python", "PCL", "ROS2"],
-    icon: "🗺",
-    github: "https://github.com",
-  },
-  {
-    id: "labelflow",
-    name: "LabelFlow",
-    description:
-      "Semi-automatic annotation tool leveraging SAM + CLIP for rapid dataset building. Exports COCO, YOLO, Pascal VOC formats.",
-    category: "Data & Annotation",
-    tags: ["Python", "React", "SAM"],
-    icon: "🏷",
-    github: "https://github.com",
-    demo: "https://example.com",
-  },
-  {
-    id: "opticsim",
-    name: "OptiSim",
-    description:
-      "Optical system simulator for lens design, PSF analysis, and diffraction modeling. Useful for camera selection and system design.",
-    category: "Optics",
-    tags: ["Python", "SciPy", "Matplotlib"],
-    icon: "🔭",
-    github: "https://github.com",
-  },
-  {
-    id: "visionbench",
-    name: "VisionBench",
-    description:
-      "Benchmark suite for vision algorithm performance. Measures latency, throughput, memory on CPU/GPU/edge devices.",
-    category: "Tooling",
-    tags: ["Python", "ONNX", "ONNX Runtime"],
-    icon: "⚡",
-    github: "https://github.com",
-  },
-  {
-    id: "patchnet",
-    name: "PatchNet",
-    description:
-      "Lightweight anomaly detection via patch-based embedding. Achieves 99.2% AUC on MVTec-AD with < 10ms inference.",
-    category: "Deep Learning",
-    tags: ["PyTorch", "FAISS", "Python"],
+      "DINOv2 + PatchCore unsupervised anomaly detection. Train on 5–10 normal images only — zero defect samples required. Outputs per-pixel heatmap. C++ inference via LibTorch.",
+    category: "Defect Detection",
+    tags: ["C++", "LibTorch", "DINOv2", "FAISS"],
     icon: "🧠",
-    github: "https://github.com",
     featured: true,
   },
   {
-    id: "colormap",
-    name: "ColorCalib",
+    id: "plugin-sdk",
+    name: "Plugin SDK",
     description:
-      "Colorimetric calibration tool using Macbeth ColorChecker. Corrects color response across different lighting conditions.",
-    category: "Calibration",
-    tags: ["Python", "OpenCV", "Colour-Science"],
-    icon: "🎨",
-    github: "https://github.com",
+      "Pure-C API for integrating VisionLab as a subprocess plugin. Windows shared-memory IPC with < 2 ms round-trip. Supports sync, async batch, and embedded-UI modes. No host-side OpenCV or PyTorch dependency.",
+    category: "Integration",
+    tags: ["C API", "IPC", "Shared Memory", "Windows"],
+    icon: "🔌",
   },
 ];
 
@@ -101,10 +82,11 @@ export default function ToolsPage() {
   return (
     <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24">
       <div className="mb-12">
-        <h1 className="text-4xl font-black text-slate-100 mb-3">Tools</h1>
+        <h1 className="text-4xl font-black text-slate-100 mb-3">Algorithm Modules</h1>
         <p className="text-slate-500 text-lg max-w-xl">
-          Open-source libraries, utilities, and applications built over 10 years
-          of machine vision engineering.
+          Six production-ready vision algorithms plus a Plugin SDK — all
+          accessible from C/C++ with no OpenCV or PyTorch dependency in your
+          host application.
         </p>
       </div>
 

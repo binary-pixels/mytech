@@ -1,0 +1,90 @@
+---
+title: "Training YOLOv8 for Industrial Defect Detection: Parameters, VRAM, and Pitfalls"
+description: "A practical guide to YOLOv8 training parameters in VisionLab — VRAM selection table, small-dataset tips, and a deep-dive into the close_mosaic loss explosion bug and its fix."
+date: "2026-03-05"
+tags: ["YOLO", "Training", "Deep Learning", "YOLOv8", "GPU"]
+featured: true
+---
+
+Getting a YOLOv8 model to converge cleanly on an industrial defect dataset requires tuning a handful of parameters correctly. This post covers the training tab in VisionLab, what each parameter does, and two non-obvious bugs you'll hit on small datasets.
+
+## VRAM Selection Table
+
+The single most important decision is which model variant to use given your GPU. More VRAM lets you use a bigger model and larger input resolution:
+
+| VRAM | Model | Input size | Batch size | Typical GPU |
+|---|---|---|---|---|
+| CPU / < 4 GB | n | 640 | 4 | Dev/debug |
+| 4–6 GB | n | 640 | 8 | GTX 1060 |
+| 6–8 GB | n | 640 | 16 | RTX 2060 |
+| 8–12 GB | s | 640 | 16 | RTX 3060 |
+| 12–16 GB | s | 1280 | 8 | RTX 3080 |
+| 16–24 GB | m | 1280 | 16 | RTX 3090 |
+| ≥ 24 GB | l | 1280 | 32 | A100 |
+
+VisionLab detects your GPU at startup and fills in the recommended defaults automatically.
+
+## Key Parameters
+
+| Parameter | Default | Notes |
+|---|---|---|
+| **Epochs** | 200 | For < 200 training images: use 200–300. For > 1000: 100 is often enough. |
+| **Batch size** | Auto | **Must not exceed training set size.** If batch > dataset, YOLOv8 silently truncates. |
+| **Optimizer** | Adam | Adam converges faster. SGD + momentum gives slightly better generalisation on large datasets. |
+| **LR** | 0.001 | Adam: 1e-3. SGD: 0.01. |
+| **LR final** | 0.0001 | Cosine decay endpoint. Do not set to 0 — it causes the last few epochs to train with near-zero gradient. |
+| **Weight decay** | 0.0005 | Regularisation. Increase to 0.001 for < 100 training images to reduce overfitting. |
+| **Val split** | 0.20 | Keep at 0.15–0.20. Less than 10 validation images makes mAP metrics unreliable. |
+
+## Small Dataset Checklist (< 100 images)
+
+- **Tile first**: Use `tile_dataset.py` to convert 4K frames into 640-px crops. One 4K image → 30–50 training samples.
+- **Batch size** = `min(training_count × 0.8, 8)` — never exceed training set count.
+- **Epochs** = 300–500 — small datasets need more passes.
+- **Model** = nano or small only — medium/large will overfit immediately.
+- **Watch val_loss**: if it rises steadily after epoch 50, stop early. `best.pt` is saved at the lowest val_loss automatically.
+
+## Training Output Files
+
+```
+output_dir/
+  train.log          ← full log with timestamps
+  best.pt            ← saved at lowest val_loss (use this for deployment)
+  epoch_10.pt        ← periodic checkpoint every save_period epochs
+  epoch_20.pt
+  ...
+```
+
+Always deploy `best.pt`, not the last epoch — the final epoch is often slightly overfit relative to the val-loss minimum.
+
+## The close_mosaic Loss Explosion Bug
+
+YOLOv8 uses mosaic augmentation (4 images stitched together) for most of training, then disables it for the last `close_mosaic` epochs to let the model adapt to single images before evaluation.
+
+On small datasets this causes a catastrophic loss spike:
+
+```
+Epoch 190/200  train=3.48  val=5.0   mAP50=0.826  ← normal
+Epoch 191/200  train=7.17  val=5.2                 ← mosaic disabled
+Epoch 192/200  train=13.99 val=5.6   mAP50=0.64   ← explosion
+Epoch 200/200  train=14.42 val=8.46  mAP50=0.39   ← model destroyed
+```
+
+**Root cause**: The model was trained exclusively on 4-image mosaic batches. When `close_mosaic` switches to single images, the per-batch foreground count drops from ~2560 to ~480. The `target_scores_sum` normalisation denominator collapses from ~1792 to ~1.0, amplifying the classification loss by ×1792 in a single step. The resulting gradient destroys the classifier head before it can adapt.
+
+**Fix in VisionLab**: `close_mosaic` is **disabled by default** (`close_mosaic = 0`). `best.pt` is always saved before any `close_mosaic` phase would trigger — the val-loss minimum on small datasets reliably falls in epochs 50–100, well before epoch 190.
+
+For datasets with > 500 images you can re-enable it (`close_mosaic = 10`), which mirrors the Ultralytics default behaviour.
+
+## Reading the Training Log
+
+```
+Epoch [050/200]  train=2.14  val=3.82  mAP50=0.741  mAP50-95=0.412
+```
+
+- **train loss** should decrease monotonically through epoch ~100
+- **val loss** decreasing = generalising; rising = overfitting — stop here
+- **mAP50** = mean Average Precision at IoU 0.5. Production target: ≥ 0.85 for single-class defect detection
+- **mAP50-95** = stricter metric (IoU 0.5 to 0.95 average). Less important for defect detection where any overlap counts
+
+Once `best.pt` is saved, export to ONNX for deployment or use it for AI-assisted auto-labelling of new images.

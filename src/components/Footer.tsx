@@ -11,13 +11,12 @@ export default function Footer() {
               <span className="text-xl">👁</span>
               <span className="font-bold">
                 <span className="gradient-text">Vision</span>
-                <span className="text-slate-300">AI</span>
+                <span className="text-slate-300">Lab</span>
               </span>
             </div>
             <p className="text-slate-500 text-sm leading-relaxed">
-              10 years of machine vision & AI research. Building intelligent
-              visual systems at the intersection of optics, mathematics, and
-              deep learning.
+              Open-source machine vision toolkit for industrial inspection,
+              deep learning, 3D reconstruction, and computer vision research.
             </p>
           </div>
 
@@ -77,7 +76,7 @@ export default function Footer() {
 
         <div className="border-t border-slate-800 pt-6 flex flex-col sm:flex-row justify-between items-center gap-2">
           <p className="text-slate-600 text-xs">
-            © {new Date().getFullYear()} VisionAI. Built with Next.js &
+            © {new Date().getFullYear()} VisionLab. Built with Next.js &
             Tailwind CSS.
           </p>
           <p className="text-slate-700 text-xs">

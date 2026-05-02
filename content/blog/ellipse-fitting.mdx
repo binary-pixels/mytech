@@ -1,0 +1,94 @@
+---
+title: "Ellipse Fitting: Fitzgibbon's Method and the 120° Triplet Strategy"
+description: "How VisionLab fits ellipses robustly using algebraic constrained least-squares (Fitzgibbon) combined with a 120° sector-triplet sampling strategy for outlier rejection."
+date: "2026-04-03"
+tags: ["Ellipse Fitting", "Fitzgibbon", "RANSAC", "Sub-pixel", "Algorithm"]
+featured: false
+---
+
+Ellipses appear wherever a circle is viewed at an angle — camera apertures, round holes on tilted surfaces, coin inspection, bearing outer rings under perspective. Fitting them robustly requires handling the same challenges as circle fitting (partial occlusion, noise, outliers) plus one more: the algebraic ellipse fitting problem is numerically ill-conditioned without the right constraint.
+
+## The General Conic and the Ellipse Constraint
+
+Any conic section satisfies the degree-2 polynomial:
+
+$$
+Ax^2 + Bxy + Cy^2 + Dx + Ey + F = 0
+$$
+
+An ellipse is distinguished from a hyperbola or parabola by the condition:
+
+$$
+B^2 - 4AC < 0
+$$
+
+Naïve least-squares minimises algebraic distance $\|Da\|^2$ (where $D$ is the design matrix of point coordinates) without enforcing this constraint — the solution frequently degenerates to a hyperbola or line pair.
+
+## Fitzgibbon's Constrained Algebraic Fit
+
+Fitzgibbon (1999) enforces the ellipse constraint directly as a quadratic constraint $a^\top C a = 1$, turning the problem into a **generalised eigenvalue problem**:
+
+$$
+Da = \lambda Ca
+$$
+
+where the constraint matrix $C$ encodes $B^2 - 4AC = 1$. The solution is the eigenvector corresponding to the unique positive eigenvalue — guaranteed to be an ellipse.
+
+The algebraic coefficients $(A, B, C, D, E, F)$ are then converted to geometric parameters:
+
+$$
+x_c = \frac{2CD - BE}{B^2 - 4AC}, \quad
+y_c = \frac{2AE - BD}{B^2 - 4AC}
+$$
+
+$$
+a = \sqrt{\frac{-2(AE^2 + CD^2 - BDE + (B^2-4AC)F)}{(B^2-4AC)\left[(A+C) - \sqrt{(A-C)^2 + B^2}\right]}}
+$$
+
+$$
+\theta = \frac{1}{2}\arctan\frac{B}{A - C}
+$$
+
+This yields semi-axes $a, b$ and rotation angle $\theta$ without any iterative solver.
+
+## The 120° Triplet Strategy
+
+Fitzgibbon's fit requires at least 5 points and is sensitive to their distribution. If all 5 points come from the same small arc segment, the fit degenerates. VisionLab addresses this with the **120° triplet strategy**:
+
+The ellipse contour is divided into 24 angular sectors (15° each). Valid sectors (those containing edge points) are identified. For each valid sector $i$, sectors at $i + 8$ (120°) and $i + 16$ (240°) are checked:
+
+```
+for i in valid_sectors:
+    j = (i + 8) % 24    # 120° away
+    k = (i + 16) % 24   # 240° away
+    if j and k are valid:
+        fit ellipse from centroids of sectors i, j, k, + 2 more
+        count global inliers
+        keep best
+```
+
+Three sectors separated by 120° are guaranteed to span the ellipse without collinearity — a natural generalisation of the three-point circle condition. The best-scoring triplet is refined using all inliers with a global least-squares step.
+
+## Eccentricity Constraint
+
+Ellipses with eccentricity close to 1 (nearly degenerate) or 0 (circles) can be filtered using:
+
+$$
+e = \sqrt{1 - \frac{b^2}{a^2}}
+$$
+
+VisionLab exposes `eccentricity_min` and `eccentricity_max` parameters. Set `eccentricity_max = 0.3` to reject near-circles; set `eccentricity_min = 0.1` to reject near-degenerate fits.
+
+## Accuracy vs Circle Fitting
+
+| Algorithm | Min points | Typical accuracy | Use case |
+|---|---|---|---|
+| Circle fitting | 3 | ±0.1 px | Symmetric holes, calibration targets |
+| Ellipse fitting | 5 | ±0.3 px | Perspective-distorted circles, oval parts |
+
+Ellipse fitting is inherently less accurate because it has more degrees of freedom (5 vs 3) for the same edge point count. If the part is truly circular, always prefer `FitCircle`.
+
+## When to Use Ellipse vs Circle
+
+- **Use FitCircle** if the camera is mounted perpendicular to the part surface and the feature is nominally circular.
+- **Use FitEllipse** if there is significant perspective tilt (> 15°), or if the feature is geometrically elliptical.
