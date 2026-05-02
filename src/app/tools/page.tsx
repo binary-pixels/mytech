@@ -76,14 +76,15 @@ const tools: Tool[] = [
   },
 ];
 
-const categories = [...new Set(tools.map((t) => t.category))].sort();
+const categoryOrder = ["Geometric Fitting", "Feature Matching", "Defect Detection", "Integration"];
+const categories = categoryOrder.filter((cat) => tools.some((t) => t.category === cat));
 
 export default function ToolsPage() {
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-28 pb-24">
+    <div className="max-w-6xl mx-auto px-4 sm:px-6 pt-24 pb-24">
       <div className="mb-12">
-        <h1 className="text-4xl font-black text-slate-100 mb-3">Algorithm Modules</h1>
-        <p className="text-slate-500 text-lg max-w-xl">
+        <h1 className="text-4xl font-black text-blue-900 dark:text-blue-300 mb-3">Algorithm Modules</h1>
+        <p className="text-slate-600 dark:text-slate-400 text-lg max-w-xl">
           Six production-ready vision algorithms plus a Plugin SDK — all
           accessible from C/C++ with no OpenCV or PyTorch dependency in your
           host application.
@@ -94,9 +95,9 @@ export default function ToolsPage() {
         const catTools = tools.filter((t) => t.category === cat);
         return (
           <div key={cat} className="mb-12">
-            <h2 className="text-slate-400 font-semibold text-sm uppercase tracking-wider mb-4 flex items-center gap-3">
+            <h2 className="text-slate-600 dark:text-slate-400 font-semibold text-sm uppercase tracking-wider mb-4 flex items-center gap-3">
               {cat}
-              <span className="h-px flex-1 bg-slate-800" />
+              <span className="h-px flex-1 bg-slate-200 dark:bg-slate-700" />
             </h2>
             <div className="grid sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {catTools.map((tool) => (
@@ -109,3 +110,5 @@ export default function ToolsPage() {
     </div>
   );
 }
+
+

@@ -19,8 +19,8 @@ export default function TagFilter({ tags, selected, onSelect }: TagFilterProps) 
           className={cn(
             "px-3 py-1.5 rounded-full text-sm font-medium border transition-all duration-200",
             (tag === "All" ? selected === "" : selected === tag)
-              ? "border-cyan-400/50 bg-cyan-400/10 text-cyan-400"
-              : "border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-300"
+              ? "border-blue-400 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-300"
+              : "border-slate-200 dark:border-slate-600 text-slate-500 dark:text-slate-400 hover:border-slate-300 dark:hover:border-slate-500 hover:text-slate-700 dark:hover:text-slate-300"
           )}
         >
           {tag}

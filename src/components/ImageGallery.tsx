@@ -27,7 +27,7 @@ export default function ImageGallery({ images, captions }: ImageGalleryProps) {
           <button
             key={src}
             onClick={() => { setIndex(i); setOpen(true); }}
-            className="group relative aspect-video rounded-lg overflow-hidden border border-slate-800 bg-slate-900 hover:border-cyan-400/30 transition-all"
+            className="group relative aspect-video rounded-lg overflow-hidden border border-slate-200 bg-slate-100 hover:border-blue-300 transition-all"
           >
             <Image
               src={src}

@@ -27,8 +27,8 @@ export default function ScanlineBackground() {
 
       ctx.clearRect(0, 0, w, h);
 
-      // Grid lines
-      ctx.strokeStyle = "rgba(34,211,238,0.04)";
+      // Grid lines (very subtle on light background)
+      ctx.strokeStyle = "rgba(37,99,235,0.04)";
       ctx.lineWidth = 1;
       const step = 48;
       for (let x = 0; x < w; x += step) {
@@ -40,27 +40,26 @@ export default function ScanlineBackground() {
 
       // Scanline
       const grad = ctx.createLinearGradient(0, scanY - 40, 0, scanY + 40);
-      grad.addColorStop(0, "rgba(34,211,238,0)");
-      grad.addColorStop(0.5, "rgba(34,211,238,0.08)");
-      grad.addColorStop(1, "rgba(34,211,238,0)");
+      grad.addColorStop(0, "rgba(37,99,235,0)");
+      grad.addColorStop(0.5, "rgba(37,99,235,0.05)");
+      grad.addColorStop(1, "rgba(37,99,235,0)");
       ctx.fillStyle = grad;
       ctx.fillRect(0, scanY - 40, w, 80);
 
       // Bright scanline edge
-      ctx.strokeStyle = "rgba(34,211,238,0.35)";
+      ctx.strokeStyle = "rgba(37,99,235,0.18)";
       ctx.lineWidth = 1.5;
       ctx.beginPath(); ctx.moveTo(0, scanY); ctx.lineTo(w, scanY); ctx.stroke();
 
       // Corner markers
       const corners = [[40, 40], [w - 40, 40], [40, h - 40], [w - 40, h - 40]] as const;
       corners.forEach(([cx, cy]) => {
-        ctx.strokeStyle = "rgba(34,211,238,0.5)";
+        ctx.strokeStyle = "rgba(37,99,235,0.25)";
         ctx.lineWidth = 2;
         const s = 16;
         ctx.beginPath();
         ctx.moveTo(cx - s, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy - s);
         ctx.moveTo(cx + s, cy); ctx.lineTo(cx, cy); ctx.lineTo(cx, cy + s);
-        // flip for bottom corners
         ctx.stroke();
       });
 

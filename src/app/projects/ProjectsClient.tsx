@@ -11,33 +11,12 @@ interface ProjectsClientProps {
 }
 
 export default function ProjectsClient({ projects, categories }: ProjectsClientProps) {
-  const [activeCategory, setActiveCategory] = useState("");
   const { selected, setSelected, filtered, allTags } = useTagFilter(projects);
 
-  const displayProjects =
-    activeCategory
-      ? filtered.filter((p) => p.category === activeCategory)
-      : filtered;
+  const displayProjects = filtered;
 
   return (
     <div>
-      {/* Category tabs */}
-      <div className="flex flex-wrap gap-2 mb-4">
-        {["All", ...categories].map((cat) => (
-          <button
-            key={cat}
-            onClick={() => setActiveCategory(cat === "All" ? "" : cat)}
-            className={`px-3 py-1.5 rounded-lg text-sm font-medium border transition-all ${
-              (cat === "All" ? activeCategory === "" : activeCategory === cat)
-                ? "border-violet-400/50 bg-violet-400/10 text-violet-400"
-                : "border-slate-700 text-slate-500 hover:border-slate-600 hover:text-slate-300"
-            }`}
-          >
-            {cat}
-          </button>
-        ))}
-      </div>
-
       {/* Tag filter */}
       <TagFilter tags={allTags} selected={selected} onSelect={setSelected} />
 
@@ -49,8 +28,9 @@ export default function ProjectsClient({ projects, categories }: ProjectsClientP
       </div>
 
       {displayProjects.length === 0 && (
-        <div className="text-center py-20 text-slate-600">No projects found.</div>
+        <div className="text-center py-20 text-slate-400">No projects found.</div>
       )}
     </div>
   );
 }
+

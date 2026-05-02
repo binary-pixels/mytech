@@ -54,14 +54,14 @@ function StatCard({ value, label, suffix = "", delay }: StatItem & { delay: numb
         {count}
         {suffix}
       </div>
-      <div className="text-slate-500 text-sm">{label}</div>
+      <div className="text-slate-600 dark:text-slate-400 text-sm">{label}</div>
     </div>
   );
 }
 
 export default function StatsCounter() {
   return (
-    <div className="grid grid-cols-3 gap-8 py-8 border-t border-slate-800">
+    <div className="grid grid-cols-3 gap-8 py-8 border-t border-slate-200 dark:border-slate-700">
       {stats.map((s, i) => (
         <StatCard key={s.label} {...s} delay={i * 150} />
       ))}

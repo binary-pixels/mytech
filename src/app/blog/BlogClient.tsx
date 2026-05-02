@@ -16,8 +16,9 @@ export default function BlogClient({ posts }: { posts: BlogMeta[] }) {
         ))}
       </div>
       {filtered.length === 0 && (
-        <div className="text-center py-20 text-slate-600">No posts found.</div>
+        <div className="text-center py-20 text-slate-400">No posts found.</div>
       )}
     </div>
   );
 }
+
