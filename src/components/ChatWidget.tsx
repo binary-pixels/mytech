@@ -300,22 +300,28 @@ export default function ChatWidget() {
   async function uploadAndSend(file: File, kind: 'image' | 'audio', transcript = '') {
     setSending(true);
     try {
-      const formData = new FormData();
-      formData.append('file', file);
-      const res = await fetch('/api/upload', {
-        method: 'POST',
-        body: formData,
-      });
-      const data = await res.json();
-      if (data.url) {
-        await sendMessage(
-          kind === 'audio' ? transcript : '',
-          kind === 'image' ? data.url : '',
-          kind === 'audio' ? data.url : ''
-        );
-      }
+      // Convert file to base64 data URL — no server upload needed
+      const base64 = await fileToBase64(file);
+      const dataUrl = `data:${file.type};base64,${base64}`;
+      await sendMessage(
+        kind === 'audio' ? transcript : '',
+        kind === 'image' ? dataUrl : '',
+        kind === 'audio' ? dataUrl : ''
+      );
     } catch {}
     setSending(false);
+  }
+
+  function fileToBase64(file: File): Promise<string> {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onloadend = () => {
+        const result = reader.result as string;
+        resolve(result.split(',')[1]); // strip data:...;base64, prefix
+      };
+      reader.onerror = reject;
+      reader.readAsDataURL(file);
+    });
   }
 
   // Long-press handlers for voice messages
