@@ -123,14 +123,14 @@ export default function ChatWidget() {
                 value={name}
                 onChange={(e) => setName(e.target.value)}
                 placeholder="Your name"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 mb-2 focus:ring-2 focus:ring-blue-500 outline-none"
               />
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
                 placeholder="Your email"
                 type="email"
-                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm mb-3 focus:ring-2 focus:ring-blue-500 outline-none"
+                className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 mb-3 focus:ring-2 focus:ring-blue-500 outline-none"
               />
               <button
                 onClick={startSession}
@@ -182,7 +182,7 @@ export default function ChatWidget() {
                       }
                     }}
                     placeholder="Type a message..."
-                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="flex-1 px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                   <button
                     onClick={sendMessage}

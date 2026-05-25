@@ -264,7 +264,7 @@ export default function AdminBlogPage() {
                 <input
                   value={form.slug}
                   onChange={(e) => setForm((f) => ({ ...f, slug: e.target.value }))}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none font-mono"
                   placeholder="auto-generated-from-title"
                 />
                 {!editing && (
@@ -338,7 +338,7 @@ export default function AdminBlogPage() {
                     value={form.body}
                     onChange={(e) => setForm((f) => ({ ...f, body: e.target.value }))}
                     rows={15}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none font-mono resize-y"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none font-mono resize-y"
                     placeholder="Write your post content in markdown..."
                   />
                 )}
