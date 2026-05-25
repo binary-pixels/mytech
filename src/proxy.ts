@@ -11,7 +11,7 @@ setInterval(() => {
   }
 }, 300000);
 
-export function middleware(request: NextRequest) {
+export function proxy(request: NextRequest) {
   const path = request.nextUrl.pathname;
 
   // Rate limit: chat send — max 30 requests/min per IP

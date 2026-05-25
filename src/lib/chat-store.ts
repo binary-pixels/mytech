@@ -1,4 +1,17 @@
-import { kv } from '@vercel/kv';
+import Redis from 'ioredis';
+
+const INDEX_KEY = 'chat:index';
+
+function getRedisUrl() {
+  const url = process.env.KV_REST_API_REDIS_URL || process.env.KV_URL || '';
+  if (!url) throw new Error('No Redis/KV configuration found');
+  return url;
+}
+
+const kv = new Redis(getRedisUrl());
+
+// Handle connection errors gracefully
+kv.on('error', () => { /* suppressed — errors caught at call sites */ });
 
 export interface ChatMessage {
   id: string;
@@ -24,16 +37,14 @@ interface SessionIndexEntry {
   lastActivity: string;
 }
 
-const INDEX_KEY = 'chat:index';
-
 function sessionKey(id: string) {
   return `chat:session:${id}`;
 }
 
 export async function readIndex(): Promise<SessionIndexEntry[]> {
   try {
-    const data = await kv.get<SessionIndexEntry[]>(INDEX_KEY);
-    return data || [];
+    const data = await kv.get(INDEX_KEY);
+    return data ? JSON.parse(data) : [];
   } catch {
     return [];
   }
@@ -41,7 +52,7 @@ export async function readIndex(): Promise<SessionIndexEntry[]> {
 
 export async function writeIndex(entries: SessionIndexEntry[]) {
   try {
-    await kv.set(INDEX_KEY, entries);
+    await kv.set(INDEX_KEY, JSON.stringify(entries));
   } catch {
     // silently fail
   }
@@ -61,8 +72,8 @@ export async function updateIndexEntry(
 
 export async function readSession(id: string): Promise<ChatSession | null> {
   try {
-    const data = await kv.get<ChatSession>(sessionKey(id));
-    return data || null;
+    const data = await kv.get(sessionKey(id));
+    return data ? JSON.parse(data) : null;
   } catch {
     return null;
   }
@@ -70,7 +81,7 @@ export async function readSession(id: string): Promise<ChatSession | null> {
 
 export async function writeSession(session: ChatSession) {
   try {
-    await kv.set(sessionKey(session.id), session);
+    await kv.set(sessionKey(session.id), JSON.stringify(session));
   } catch {
     // silently fail
   }
