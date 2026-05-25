@@ -67,6 +67,8 @@ export default function AdminChatPage() {
   const prevMsgCountRef = useRef(0);
   const prevSessionsRef = useRef<Map<string, number>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const composingRef = useRef(false);
+  const compositionEndRef = useRef(0);
 
   // Voice recording state
   const [recording, setRecording] = useState(false);
@@ -807,11 +809,13 @@ export default function AdminChatPage() {
                   value={input}
                   onChange={(e) => setInput(e.target.value)}
                   onKeyDown={(e) => {
-                    if (e.key === 'Enter' && !e.shiftKey && !(e.nativeEvent as any).isComposing) {
+                    if (e.key === 'Enter' && !e.shiftKey && !composingRef.current && Date.now() - compositionEndRef.current > 100) {
                       e.preventDefault();
                       handleSendText();
                     }
                   }}
+                  onCompositionStart={() => { composingRef.current = true; }}
+                  onCompositionEnd={() => { composingRef.current = false; compositionEndRef.current = Date.now(); }}
                   placeholder='Type your reply...'
                   rows={2}
                   className='flex-1 px-4 py-2.5 border rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none border-gray-300'

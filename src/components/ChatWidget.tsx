@@ -50,6 +50,8 @@ export default function ChatWidget() {
   const [translations, setTranslations] = useState<Record<string, string>>({});
 
   const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const composingRef = useRef(false);
+  const compositionEndRef = useRef(0);
 
   useEffect(() => {
     return () => {
@@ -472,7 +474,9 @@ export default function ChatWidget() {
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                onKeyDown={(e) => { if (e.key === 'Enter' && !(e.nativeEvent as any).isComposing) startSession(); }}
+                onKeyDown={(e) => { if (e.key === 'Enter' && !composingRef.current && Date.now() - compositionEndRef.current > 100) startSession(); }}
+                onCompositionStart={() => { composingRef.current = true; }}
+                onCompositionEnd={() => { composingRef.current = false; compositionEndRef.current = Date.now(); }}
                 placeholder="Your email"
                 type="email"
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 mb-3 focus:ring-2 focus:ring-blue-500 outline-none"
@@ -679,11 +683,13 @@ export default function ChatWidget() {
                     value={input}
                     onChange={(e) => setInput(e.target.value)}
                     onKeyDown={(e) => {
-                      if (e.key === 'Enter' && !e.shiftKey && !(e.nativeEvent as any).isComposing) {
+                      if (e.key === 'Enter' && !e.shiftKey && !composingRef.current && Date.now() - compositionEndRef.current > 100) {
                         e.preventDefault();
                         handleSendText();
                       }
                     }}
+                    onCompositionStart={() => { composingRef.current = true; }}
+                    onCompositionEnd={() => { composingRef.current = false; compositionEndRef.current = Date.now(); }}
                     disabled={startingSession}
                     placeholder={startingSession ? 'Connecting...' : 'Type a message...'}
                     className='flex-1 px-3 py-2 border rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none border-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed'
