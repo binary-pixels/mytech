@@ -20,6 +20,40 @@ interface ChatSession {
 }
 
 const POLL_INTERVAL = 3000;
+const ONLINE_THRESHOLD_MS = 30000; // 30 seconds
+
+function playNotificationSound() {
+  try {
+    const ctx = new (window.AudioContext || (window as any).webkitAudioContext)();
+    const oscillator = ctx.createOscillator();
+    const gain = ctx.createGain();
+    oscillator.connect(gain);
+    gain.connect(ctx.destination);
+    oscillator.frequency.value = 660;
+    oscillator.type = 'sine';
+    gain.gain.setValueAtTime(0.3, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.4);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + 0.4);
+    // Second tone
+    const osc2 = ctx.createOscillator();
+    const gain2 = ctx.createGain();
+    osc2.connect(gain2);
+    gain2.connect(ctx.destination);
+    osc2.frequency.value = 880;
+    osc2.type = 'sine';
+    gain2.gain.setValueAtTime(0.3, ctx.currentTime + 0.1);
+    gain2.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + 0.5);
+    osc2.start(ctx.currentTime + 0.1);
+    osc2.stop(ctx.currentTime + 0.5);
+  } catch {
+    // Audio not supported
+  }
+}
+
+function isOnline(session: any): boolean {
+  return !!session.lastSeen && Date.now() - session.lastSeen < ONLINE_THRESHOLD_MS;
+}
 
 export default function AdminChatPage() {
   const [sessions, setSessions] = useState<ChatSession[]>([]);
@@ -31,6 +65,7 @@ export default function AdminChatPage() {
   const chatContainerRef = useRef<HTMLDivElement>(null);
   const shouldAutoScrollRef = useRef(true);
   const prevMsgCountRef = useRef(0);
+  const prevSessionsRef = useRef<Map<string, number>>(new Map());
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Voice recording state
@@ -69,9 +104,24 @@ export default function AdminChatPage() {
         const res = await fetch(`/api/chat/session?${params}`);
         if (res.ok) {
           const data = await res.json();
-          setSessions(data.sessions || []);
+          const newSessions = data.sessions || [];
+          setSessions(newSessions);
           setTotalPages(data.totalPages || 1);
           setTotalSessions(data.total || 0);
+
+          // Check for new customer messages and play notification sound
+          for (const session of newSessions) {
+            const customerMsgs = (session.messages || []).filter((m: any) => m.role === 'customer');
+            if (customerMsgs.length === 0) continue;
+            const prevCount = prevSessionsRef.current.get(session.id) ?? 0;
+            if (prevCount > 0 && customerMsgs.length > prevCount) {
+              // Only play if this session is not the currently active one
+              if (session.id !== activeSessionId) {
+                playNotificationSound();
+              }
+            }
+            prevSessionsRef.current.set(session.id, customerMsgs.length);
+          }
         }
       } catch {}
     }
@@ -82,7 +132,7 @@ export default function AdminChatPage() {
       stopRecordingCleanup();
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     };
-  }, [page, searchQuery]);
+  }, [page, searchQuery, activeSessionId]);
 
   // Fetch full session data when a session is selected
   useEffect(() => {
@@ -500,9 +550,17 @@ export default function AdminChatPage() {
                 }`}
               >
                 <div className="flex items-center justify-between">
-                  <span className="text-sm font-semibold text-gray-900 truncate">
-                    {session.customerName || 'Anonymous'}
-                  </span>
+                  <div className="flex items-center gap-1.5 min-w-0">
+                    <span className={`w-2 h-2 rounded-full shrink-0 ${
+                      isOnline(session) ? 'bg-green-500' : 'bg-gray-300'
+                    }`} title={isOnline(session) ? 'Online' : 'Offline'} />
+                    <span className="text-sm font-semibold text-gray-900 truncate">
+                      {session.customerName || 'Anonymous'}
+                    </span>
+                    {isOnline(session) && (
+                      <span className="text-[10px] font-medium text-green-600 shrink-0">Online</span>
+                    )}
+                  </div>
                   {unread > 0 && (
                     <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full bg-red-500 text-white">
                       {unread}
@@ -549,12 +607,22 @@ export default function AdminChatPage() {
         {activeSession ? (
           <>
             <div className="px-6 py-3 border-b border-gray-200 bg-white">
-              <span className="font-semibold text-gray-900">
-                {activeSession.customerName || 'Anonymous'}
-              </span>
-              {activeSession.customerEmail && (
-                <span className="text-xs text-gray-400 ml-2">({activeSession.customerEmail})</span>
-              )}
+              <div className="flex items-center gap-2">
+                <span className="font-semibold text-gray-900">
+                  {activeSession.customerName || 'Anonymous'}
+                </span>
+                {activeSession.customerEmail && (
+                  <span className="text-xs text-gray-400">({activeSession.customerEmail})</span>
+                )}
+                <span className={`flex items-center gap-1 text-[10px] font-medium ${
+                  isOnline(activeSession) ? 'text-green-600' : 'text-gray-400'
+                }`}>
+                  <span className={`w-1.5 h-1.5 rounded-full ${
+                    isOnline(activeSession) ? 'bg-green-500' : 'bg-gray-300'
+                  }`} />
+                  {isOnline(activeSession) ? 'Online' : 'Offline'}
+                </span>
+              </div>
             </div>
 
             <div

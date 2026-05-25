@@ -8,10 +8,17 @@ function getRedisUrl() {
   return url;
 }
 
-const kv = new Redis(getRedisUrl());
+// Vercel KV (Upstash) — plain redis:// URL, no TLS needed locally
+const kv = new Redis(getRedisUrl(), {
+  connectTimeout: 10000,
+  retryStrategy: (times) => Math.min(times * 100, 3000),
+});
 
 // Handle connection errors gracefully
-kv.on('error', () => { /* suppressed — errors caught at call sites */ });
+kv.on('error', (err: any) => {
+  if (err?.code === 'ECONNRESET' || err?.code === 'ETIMEDOUT') return;
+  console.warn('[redis]', err?.message);
+});
 
 export interface ChatMessage {
   id: string;
@@ -93,4 +100,37 @@ export async function deleteSessionFile(id: string) {
   } catch {
     // silently fail
   }
+}
+
+// ---- Heartbeat (online status) ----
+
+function heartbeatKey(sessionId: string) {
+  return `chat:heartbeat:${sessionId}`;
+}
+
+export async function updateSessionHeartbeat(sessionId: string): Promise<void> {
+  try {
+    await kv.set(heartbeatKey(sessionId), String(Date.now()), 'EX', 90);
+  } catch {
+    // silently fail
+  }
+}
+
+export async function getHeartbeats(sessionIds: string[]): Promise<Map<string, number>> {
+  const map = new Map<string, number>();
+  if (sessionIds.length === 0) return map;
+  try {
+    const keys = sessionIds.map(heartbeatKey);
+    const values = await kv.mget(...keys);
+    for (let i = 0; i < sessionIds.length; i++) {
+      const val = values[i];
+      if (val) {
+        const ts = parseInt(val as string, 10);
+        if (!isNaN(ts)) map.set(sessionIds[i], ts);
+      }
+    }
+  } catch {
+    // silently fail
+  }
+  return map;
 }

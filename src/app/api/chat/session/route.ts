@@ -4,6 +4,7 @@ import {
   writeIndex,
   readSession,
   writeSession,
+  getHeartbeats,
   ChatSession,
 } from '@/lib/chat-store';
 
@@ -94,8 +95,16 @@ export async function GET(request: Request) {
   const start = (page - 1) * limit;
   const paginated = merged.slice(start, start + limit);
 
+  // Attach heartbeat (lastSeen) data
+  const sessionIds = paginated.map((s) => s.id);
+  const heartbeats = await getHeartbeats(sessionIds);
+  const sessionsWithStatus = paginated.map((s) => ({
+    ...s,
+    lastSeen: heartbeats.get(s.id) ?? null,
+  }));
+
   return NextResponse.json({
-    sessions: paginated,
+    sessions: sessionsWithStatus,
     total,
     page,
     limit,

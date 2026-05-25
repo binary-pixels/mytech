@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { readSession, writeSession, updateIndexEntry } from '@/lib/chat-store';
+import { readSession, writeSession, updateIndexEntry, updateSessionHeartbeat } from '@/lib/chat-store';
 
 export async function POST(request: Request) {
   try {
@@ -37,6 +37,11 @@ export async function POST(request: Request) {
 
     await writeSession(session);
     await updateIndexEntry(sessionId, { lastActivity: session.lastActivity, customerName: session.customerName });
+
+    // Track customer heartbeat for online status
+    if (role === 'customer') {
+      await updateSessionHeartbeat(sessionId);
+    }
 
     return NextResponse.json({ success: true });
   } catch {

@@ -38,6 +38,7 @@ export default function ChatWidget() {
   const voiceTranscriptRef = useRef<string>('');
   const interimTranscriptRef = useRef<string>('');
   const [voiceLang, setVoiceLang] = useState<'zh-CN' | 'en-US'>('zh-CN');
+  const [startingSession, setStartingSession] = useState(false);
 
   // Voice message context menu (long-press for translation)
   const [contextMenuMsgId, setContextMenuMsgId] = useState<string | null>(null);
@@ -48,13 +49,35 @@ export default function ChatWidget() {
   const [translatingId, setTranslatingId] = useState<string | null>(null);
   const [translations, setTranslations] = useState<Record<string, string>>({});
 
+  const heartbeatRef = useRef<ReturnType<typeof setInterval> | null>(null);
+
   useEffect(() => {
     return () => {
       if (pollingRef.current) clearInterval(pollingRef.current);
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
       stopRecordingCleanup();
       if (longPressTimerRef.current) clearTimeout(longPressTimerRef.current);
     };
   }, []);
+
+  // Heartbeat: ping server every 15s while chat is open to show online status
+  useEffect(() => {
+    if (!sessionId || step !== 'chat') return;
+    const heartbeat = async () => {
+      try {
+        await fetch('/api/chat/heartbeat', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ sessionId }),
+        });
+      } catch {}
+    };
+    heartbeat();
+    heartbeatRef.current = setInterval(heartbeat, 15000);
+    return () => {
+      if (heartbeatRef.current) clearInterval(heartbeatRef.current);
+    };
+  }, [sessionId, step]);
 
   useEffect(() => {
     const el = chatContainerRef.current;
@@ -104,6 +127,9 @@ export default function ChatWidget() {
   async function startSession() {
     if (!email.trim()) return;
     const derivedName = email.trim().split('@')[0];
+    // Show chat UI immediately, create session in background
+    setStep('chat');
+    setStartingSession(true);
     try {
       const res = await fetch('/api/chat/session', {
         method: 'POST',
@@ -112,17 +138,19 @@ export default function ChatWidget() {
       });
       const data = await res.json();
       setSessionId(data.sessionId);
-      setStep('chat');
 
       // Load existing messages immediately (resume chat)
       const existing = await fetchMessages(data.sessionId);
       if (existing) setMessages(existing);
 
+      setStartingSession(false);
       pollingRef.current = setInterval(async () => {
         const msgs = await fetchMessages(data.sessionId);
         if (msgs) setMessages(msgs);
       }, 3000);
-    } catch {}
+    } catch {
+      setStartingSession(false);
+    }
   }
 
   async function fetchMessages(sid: string): Promise<Message[] | null> {
@@ -139,6 +167,18 @@ export default function ChatWidget() {
     if (!text && !imageUrl && !audioUrl) return;
     if (!sessionId) return;
     setSending(true);
+    setInput('');
+
+    // Optimistic: show message immediately
+    const optimistic: Message = {
+      id: `temp-${Date.now()}`,
+      role: 'customer',
+      text,
+      imageUrl: imageUrl || undefined,
+      audioUrl: audioUrl || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    setMessages((prev) => [...prev, optimistic]);
 
     try {
       await fetch('/api/chat/send', {
@@ -432,16 +472,17 @@ export default function ChatWidget() {
               <input
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
+                onKeyDown={(e) => { if (e.key === 'Enter') startSession(); }}
                 placeholder="Your email"
                 type="email"
                 className="w-full px-3 py-2.5 border border-gray-300 rounded-lg text-sm text-gray-900 mb-3 focus:ring-2 focus:ring-blue-500 outline-none"
               />
               <button
                 onClick={startSession}
-                disabled={!email.trim()}
+                disabled={!email.trim() || startingSession}
                 className="w-full py-2.5 bg-blue-700 text-white rounded-lg font-medium hover:bg-blue-800 disabled:opacity-50 transition-colors text-sm"
               >
-                Start Chat
+                {startingSession ? 'Connecting...' : 'Start Chat'}
               </button>
             </div>
           ) : (
@@ -450,9 +491,17 @@ export default function ChatWidget() {
                 ref={chatContainerRef}
                 className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3"
               >
-                {messages.length === 0 && (
+                {messages.length === 0 && !startingSession && (
                   <div className="text-center text-gray-400 text-sm mt-8">
                     <p>Send a message to start the conversation.</p>
+                  </div>
+                )}
+                {messages.length === 0 && startingSession && (
+                  <div className="text-center text-gray-400 text-sm mt-8">
+                    <div className="animate-pulse space-y-2">
+                      <div className="w-3 h-3 bg-gray-300 rounded-full mx-auto" />
+                      <p>Connecting...</p>
+                    </div>
                   </div>
                 )}
                 {messages.map((msg) => {
@@ -635,12 +684,13 @@ export default function ChatWidget() {
                         handleSendText();
                       }
                     }}
-                    placeholder='Type a message...'
-                    className={`flex-1 px-3 py-2 border rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none border-gray-300`}
+                    disabled={startingSession}
+                    placeholder={startingSession ? 'Connecting...' : 'Type a message...'}
+                    className='flex-1 px-3 py-2 border rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none border-gray-300 disabled:bg-gray-50 disabled:cursor-not-allowed'
                   />
                   <button
                     onClick={handleSendText}
-                    disabled={sending || !input.trim()}
+                    disabled={sending || !input.trim() || startingSession}
                     className="px-4 py-2 bg-blue-700 text-white rounded-lg hover:bg-blue-800 disabled:opacity-50 transition-colors shrink-0"
                   >
                     <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
