@@ -777,7 +777,7 @@ export default function AdminChatPage() {
             </div>
 
             <div className="border-t border-gray-200 bg-white p-4">
-              <div className="flex gap-3 items-end">
+              <div className="flex gap-3 items-center">
                 {/* Image upload */}
                 <button
                   onClick={() => fileInputRef.current?.click()}
@@ -848,7 +848,7 @@ export default function AdminChatPage() {
                 <button
                   onClick={handleSendText}
                   disabled={sending || !input.trim()}
-                  className="px-6 py-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 transition-colors font-medium self-end shrink-0"
+                  className="px-6 py-2.5 bg-blue-700 text-white rounded-xl hover:bg-blue-800 disabled:opacity-50 transition-colors font-medium shrink-0"
                 >
                   Send
                 </button>

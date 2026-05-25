@@ -626,7 +626,7 @@ export default function ChatWidget() {
               </div>
 
               <div className="border-t border-gray-200 p-3">
-                <div className="flex gap-1 items-end">
+                <div className="flex gap-1 items-center">
                   {/* Image upload */}
                   <button
                     onClick={() => fileInputRef.current?.click()}
