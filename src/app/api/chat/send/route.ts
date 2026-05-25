@@ -19,6 +19,10 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
+    if (session.messages.length >= 500) {
+      return NextResponse.json({ error: 'Session message limit reached' }, { status: 400 });
+    }
+
     const message = {
       id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       role,

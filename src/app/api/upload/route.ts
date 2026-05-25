@@ -54,7 +54,9 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'File too large. Max 10MB' }, { status: 400 });
     }
 
-    const ext = file.name.split('.').pop() || (isAudio ? 'webm' : 'jpg');
+    // Sanitize extension — prevent path traversal
+    const rawExt = file.name.split('.').pop() || (isAudio ? 'webm' : 'jpg');
+    const ext = rawExt.replace(/[^a-zA-Z0-9]/g, '').slice(0, 6) || 'bin';
     const uploadDir = isAudio ? AUDIO_DIR : IMAGE_DIR;
     const urlPrefix = isAudio ? '/audio' : '/images/uploads';
 
