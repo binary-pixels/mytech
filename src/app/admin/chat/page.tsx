@@ -193,7 +193,7 @@ export default function AdminChatPage() {
                   }}
                   placeholder="Type your reply..."
                   rows={2}
-                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm focus:ring-2 focus:ring-blue-500 outline-none resize-none"
+                  className="flex-1 px-4 py-2.5 border border-gray-300 rounded-xl text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none resize-none"
                 />
                 <button
                   onClick={sendReply}

@@ -253,7 +253,7 @@ export default function AdminBlogPage() {
                 <input
                   value={form.title}
                   onChange={(e) => handleTitleChange(e.target.value)}
-                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                   placeholder="Post title"
                 />
               </div>
@@ -279,7 +279,7 @@ export default function AdminBlogPage() {
                   <input
                     value={form.description}
                     onChange={(e) => setForm((f) => ({ ...f, description: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="Brief description"
                   />
                 </div>
@@ -289,7 +289,7 @@ export default function AdminBlogPage() {
                     type="date"
                     value={form.date}
                     onChange={(e) => setForm((f) => ({ ...f, date: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                   />
                 </div>
               </div>
@@ -301,7 +301,7 @@ export default function AdminBlogPage() {
                   <input
                     value={form.tags}
                     onChange={(e) => setForm((f) => ({ ...f, tags: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="Comma separated: vision, AI, tutorial"
                   />
                 </div>
@@ -310,7 +310,7 @@ export default function AdminBlogPage() {
                   <input
                     value={form.image}
                     onChange={(e) => setForm((f) => ({ ...f, image: e.target.value }))}
-                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm focus:ring-2 focus:ring-blue-500 outline-none"
+                    className="w-full px-3 py-2 border border-gray-300 rounded-lg text-sm text-gray-900 focus:ring-2 focus:ring-blue-500 outline-none"
                     placeholder="/images/uploads/filename.jpg"
                   />
                 </div>
