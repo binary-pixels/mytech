@@ -23,6 +23,10 @@ export interface BlogMeta {
   image?: string;
   readingTime?: string;
   featured?: boolean;
+  /** If true, this post came from the API (JSON-backed, not MDX) */
+  fromApi?: boolean;
+  /** Markdown body, only present for API posts */
+  body?: string;
 }
 
 export interface Tool {
