@@ -13,7 +13,7 @@ interface Props {
 
 async function getApiPost(slug: string): Promise<BlogMeta & { body: string } | null> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
     const res = await fetch(`${baseUrl}/api/blog?slug=${slug}`, { cache: "no-store" });
     if (!res.ok) return null;
     return await res.json();

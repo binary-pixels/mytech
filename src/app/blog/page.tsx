@@ -10,7 +10,7 @@ export const metadata: Metadata = {
 
 async function getApiPosts(): Promise<BlogMeta[]> {
   try {
-    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
+    const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3001";
     const res = await fetch(`${baseUrl}/api/blog`, { cache: "no-store" });
     if (!res.ok) return [];
     const data = await res.json();
