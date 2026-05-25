@@ -1,4 +1,4 @@
-import { kv } from '@vercel/kv';
+import { put, list, del } from '@vercel/blob';
 
 export interface ChatMessage {
   id: string;
@@ -24,27 +24,45 @@ interface SessionIndexEntry {
   lastActivity: string;
 }
 
-const INDEX_KEY = 'chat:index';
+const INDEX_PATH = 'chat/index.json';
 
-function sessionKey(id: string) {
-  return `chat:session:${id}`;
+function sessionPath(id: string) {
+  return `chat/sessions/${id}.json`;
+}
+
+async function fetchJson<T>(url: string): Promise<T | null> {
+  try {
+    const res = await fetch(url);
+    if (!res.ok) return null;
+    return await res.json();
+  } catch {
+    return null;
+  }
+}
+
+/** Find the blob URL for a given pathname by listing with prefix */
+async function findBlobUrl(pathname: string): Promise<string | null> {
+  try {
+    const { blobs } = await list({ prefix: pathname });
+    return blobs.find((b) => b.pathname === pathname)?.url || null;
+  } catch {
+    return null;
+  }
 }
 
 export async function readIndex(): Promise<SessionIndexEntry[]> {
-  try {
-    const data = await kv.get<SessionIndexEntry[]>(INDEX_KEY);
-    return data || [];
-  } catch {
-    return [];
-  }
+  const url = await findBlobUrl(INDEX_PATH);
+  if (!url) return [];
+  const data = await fetchJson<SessionIndexEntry[]>(url);
+  return data || [];
 }
 
 export async function writeIndex(entries: SessionIndexEntry[]) {
-  try {
-    await kv.set(INDEX_KEY, entries);
-  } catch {
-    // silently fail
-  }
+  const content = JSON.stringify(entries, null, 2);
+  await put(INDEX_PATH, content, {
+    access: 'public',
+    addRandomSuffix: false,
+  });
 }
 
 export async function updateIndexEntry(
@@ -60,25 +78,29 @@ export async function updateIndexEntry(
 }
 
 export async function readSession(id: string): Promise<ChatSession | null> {
-  try {
-    const data = await kv.get<ChatSession>(sessionKey(id));
-    return data || null;
-  } catch {
-    return null;
-  }
+  const pathname = sessionPath(id);
+  const url = await findBlobUrl(pathname);
+  if (!url) return null;
+  return await fetchJson<ChatSession>(url);
 }
 
 export async function writeSession(session: ChatSession) {
-  try {
-    await kv.set(sessionKey(session.id), session);
-  } catch {
-    // silently fail
-  }
+  const content = JSON.stringify(session, null, 2);
+  await put(sessionPath(session.id), content, {
+    access: 'public',
+    addRandomSuffix: false,
+  });
 }
 
 export async function deleteSessionFile(id: string) {
+  const pathname = sessionPath(id);
   try {
-    await kv.del(sessionKey(id));
+    const { blobs } = await list({ prefix: pathname });
+    for (const blob of blobs) {
+      if (blob.pathname === pathname) {
+        await del(blob.url);
+      }
+    }
   } catch {
     // silently fail
   }
