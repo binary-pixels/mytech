@@ -1,9 +1,4 @@
-import fs from 'fs';
-import path from 'path';
-
-const SESSIONS_DIR = path.join(process.cwd(), 'src/data/chat/sessions');
-const INDEX_FILE = path.join(SESSIONS_DIR, '_index.json');
-const OLD_FILE = path.join(process.cwd(), 'src/data/chat/sessions.json');
+import { kv } from '@vercel/kv';
 
 export interface ChatMessage {
   id: string;
@@ -29,88 +24,62 @@ interface SessionIndexEntry {
   lastActivity: string;
 }
 
-function ensureDir() {
-  if (!fs.existsSync(SESSIONS_DIR)) {
-    fs.mkdirSync(SESSIONS_DIR, { recursive: true });
-  }
+const INDEX_KEY = 'chat:index';
+
+function sessionKey(id: string) {
+  return `chat:session:${id}`;
 }
 
-/** Migrate old sessions.json to per-session files, then remove it */
-function migrateIfNeeded() {
-  if (fs.existsSync(OLD_FILE)) {
-    try {
-      const raw = fs.readFileSync(OLD_FILE, 'utf-8');
-      const sessions: ChatSession[] = JSON.parse(raw);
-      ensureDir();
-      const index: SessionIndexEntry[] = [];
-      for (const s of sessions) {
-        const filePath = path.join(SESSIONS_DIR, `${s.id}.json`);
-        if (!fs.existsSync(filePath)) {
-          fs.writeFileSync(filePath, JSON.stringify(s, null, 2), 'utf-8');
-        }
-        index.push({
-          id: s.id,
-          customerName: s.customerName,
-          customerEmail: s.customerEmail,
-          lastActivity: s.lastActivity,
-        });
-      }
-      fs.writeFileSync(INDEX_FILE, JSON.stringify(index, null, 2), 'utf-8');
-      fs.renameSync(OLD_FILE, OLD_FILE + '.bak');
-    } catch {
-      // if migration fails, just leave old file
-    }
-  }
-}
-
-export function readIndex(): SessionIndexEntry[] {
-  migrateIfNeeded();
-  ensureDir();
+export async function readIndex(): Promise<SessionIndexEntry[]> {
   try {
-    const raw = fs.readFileSync(INDEX_FILE, 'utf-8');
-    return JSON.parse(raw);
+    const data = await kv.get<SessionIndexEntry[]>(INDEX_KEY);
+    return data || [];
   } catch {
     return [];
   }
 }
 
-export function writeIndex(entries: SessionIndexEntry[]) {
-  ensureDir();
-  fs.writeFileSync(INDEX_FILE, JSON.stringify(entries, null, 2), 'utf-8');
-}
-
-export function updateIndexEntry(
-  id: string,
-  patch: Partial<SessionIndexEntry>
-) {
-  const index = readIndex();
-  const idx = index.findIndex((e) => e.id === id);
-  if (idx !== -1) {
-    index[idx] = { ...index[idx], ...patch };
-    writeIndex(index);
+export async function writeIndex(entries: SessionIndexEntry[]) {
+  try {
+    await kv.set(INDEX_KEY, entries);
+  } catch {
+    // silently fail
   }
 }
 
-export function readSession(id: string): ChatSession | null {
-  migrateIfNeeded();
-  const file = path.join(SESSIONS_DIR, `${id}.json`);
+export async function updateIndexEntry(
+  id: string,
+  patch: Partial<SessionIndexEntry>
+) {
+  const index = await readIndex();
+  const idx = index.findIndex((e) => e.id === id);
+  if (idx !== -1) {
+    index[idx] = { ...index[idx], ...patch };
+    await writeIndex(index);
+  }
+}
+
+export async function readSession(id: string): Promise<ChatSession | null> {
   try {
-    const raw = fs.readFileSync(file, 'utf-8');
-    return JSON.parse(raw);
+    const data = await kv.get<ChatSession>(sessionKey(id));
+    return data || null;
   } catch {
     return null;
   }
 }
 
-export function writeSession(session: ChatSession) {
-  ensureDir();
-  const filePath = path.join(SESSIONS_DIR, `${session.id}.json`);
-  fs.writeFileSync(filePath, JSON.stringify(session, null, 2), 'utf-8');
+export async function writeSession(session: ChatSession) {
+  try {
+    await kv.set(sessionKey(session.id), session);
+  } catch {
+    // silently fail
+  }
 }
 
-export function deleteSessionFile(id: string) {
-  const file = path.join(SESSIONS_DIR, `${id}.json`);
-  if (fs.existsSync(file)) {
-    fs.unlinkSync(file);
+export async function deleteSessionFile(id: string) {
+  try {
+    await kv.del(sessionKey(id));
+  } catch {
+    // silently fail
   }
 }

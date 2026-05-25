@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'Message must have text, image, or audio' }, { status: 400 });
     }
 
-    const session = readSession(sessionId);
+    const session = await readSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
@@ -35,8 +35,8 @@ export async function POST(request: Request) {
     session.messages.push(message);
     session.lastActivity = new Date().toISOString();
 
-    writeSession(session);
-    updateIndexEntry(sessionId, { lastActivity: session.lastActivity, customerName: session.customerName });
+    await writeSession(session);
+    await updateIndexEntry(sessionId, { lastActivity: session.lastActivity, customerName: session.customerName });
 
     return NextResponse.json({ success: true });
   } catch {

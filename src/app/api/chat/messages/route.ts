@@ -9,7 +9,7 @@ export async function GET(request: Request) {
     return NextResponse.json({ error: 'Session ID required' }, { status: 400 });
   }
 
-  const session = readSession(sessionId);
+  const session = await readSession(sessionId);
   if (!session) {
     return NextResponse.json({ error: 'Session not found' }, { status: 404 });
   }
