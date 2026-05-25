@@ -136,7 +136,7 @@ export default function AdminChatPage() {
     };
   }, [page, searchQuery, activeSessionId]);
 
-  // Fetch full session data when a session is selected
+  // Poll full session data when a session is active (real-time message updates)
   useEffect(() => {
     if (!activeSessionId) { setFullSession(null); return; }
     async function load() {
@@ -146,6 +146,8 @@ export default function AdminChatPage() {
       } catch {}
     }
     load();
+    const interval = setInterval(load, POLL_INTERVAL);
+    return () => clearInterval(interval);
   }, [activeSessionId]);
 
   // Track scroll position via native event — only auto-scroll when user is near bottom
@@ -201,6 +203,25 @@ export default function AdminChatPage() {
     setInput('');
     setSending(true);
 
+    // Optimistic: show message immediately in the active session
+    const optimistic: Message = {
+      id: `temp-${Date.now()}`,
+      role: 'agent',
+      text,
+      imageUrl: imageUrl || undefined,
+      audioUrl: audioUrl || undefined,
+      createdAt: new Date().toISOString(),
+    };
+    setFullSession((prev) => {
+      if (!prev) return prev;
+      // Add to messages list + session list preview
+      return {
+        ...prev,
+        messages: [...prev.messages, optimistic],
+        lastActivity: optimistic.createdAt,
+      };
+    });
+
     try {
       await fetch('/api/chat/send', {
         method: 'POST',
@@ -214,12 +235,16 @@ export default function AdminChatPage() {
         }),
       });
 
-      // Refresh with same pagination
+      // Refresh full session to get server-assigned message IDs
+      const sessionRes = await fetch(`/api/chat/session?sessionId=${activeSessionId}`);
+      if (sessionRes.ok) setFullSession(await sessionRes.json());
+
+      // Refresh session list
       const params = new URLSearchParams({ sessionId: 'list', page: String(page), limit: '50' });
       if (searchQuery) params.set('search', searchQuery);
-      const res = await fetch(`/api/chat/session?${params}`);
-      if (res.ok) {
-        const data = await res.json();
+      const listRes = await fetch(`/api/chat/session?${params}`);
+      if (listRes.ok) {
+        const data = await listRes.json();
         setSessions(data.sessions || []);
         setTotalPages(data.totalPages || 1);
         setTotalSessions(data.total || 0);
