@@ -1,37 +1,38 @@
 import { NextResponse } from 'next/server';
-import fs from 'fs';
-import path from 'path';
-
-const SESSIONS_FILE = path.join(process.cwd(), 'src/data/chat/sessions.json');
+import { readSession, writeSession, updateIndexEntry } from '@/lib/chat-store';
 
 export async function POST(request: Request) {
   try {
     const body = await request.json();
-    const { sessionId, role, text } = body;
+    const { sessionId, role, text, imageUrl, audioUrl } = body;
 
-    if (!sessionId || !role || !text) {
+    if (!sessionId || !role) {
       return NextResponse.json({ error: 'Missing required fields' }, { status: 400 });
     }
 
-    const raw = fs.readFileSync(SESSIONS_FILE, 'utf-8');
-    const sessions = JSON.parse(raw);
-    const session = sessions.find((s: { id: string }) => s.id === sessionId);
+    if (!text && !imageUrl && !audioUrl) {
+      return NextResponse.json({ error: 'Message must have text, image, or audio' }, { status: 400 });
+    }
 
+    const session = readSession(sessionId);
     if (!session) {
       return NextResponse.json({ error: 'Session not found' }, { status: 404 });
     }
 
     const message = {
-      id: `msg-${Date.now()}`,
+      id: `msg-${Date.now()}-${Math.random().toString(36).slice(2, 6)}`,
       role,
-      text,
+      text: text || '',
+      imageUrl: imageUrl || '',
+      audioUrl: audioUrl || '',
       createdAt: new Date().toISOString(),
     };
 
     session.messages.push(message);
     session.lastActivity = new Date().toISOString();
 
-    fs.writeFileSync(SESSIONS_FILE, JSON.stringify(sessions, null, 2), 'utf-8');
+    writeSession(session);
+    updateIndexEntry(sessionId, { lastActivity: session.lastActivity, customerName: session.customerName });
 
     return NextResponse.json({ success: true });
   } catch {

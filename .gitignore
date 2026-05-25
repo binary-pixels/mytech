@@ -52,3 +52,11 @@ next-env.d.ts
 /public/images/uploads/*.gif
 /public/images/uploads/*.webp
 !/public/images/uploads/.gitkeep
+/public/audio/*.webm
+/public/audio/*.m4a
+/public/audio/*.mp3
+/public/audio/*.wav
+/public/audio/*.ogg
+!/public/audio/.gitkeep
+/src/data/chat/sessions/*.json
+!/src/data/chat/sessions/.gitkeep

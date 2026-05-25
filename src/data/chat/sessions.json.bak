@@ -1,0 +1,214 @@
+[
+  {
+    "id": "session-1779676426646",
+    "customerName": "bin",
+    "customerEmail": "bin@gmail.com",
+    "lastActivity": "2026-05-25T04:01:09.679Z",
+    "messages": [
+      {
+        "id": "msg-1779676426646",
+        "role": "customer",
+        "text": "",
+        "createdAt": "2026-05-25T02:33:46.646Z"
+      },
+      {
+        "id": "msg-1779676431482",
+        "role": "customer",
+        "text": "hello",
+        "createdAt": "2026-05-25T02:33:51.482Z"
+      },
+      {
+        "id": "msg-1779676440365",
+        "role": "agent",
+        "text": "hi",
+        "createdAt": "2026-05-25T02:34:00.365Z"
+      },
+      {
+        "id": "msg-1779676451812",
+        "role": "agent",
+        "text": "ff",
+        "createdAt": "2026-05-25T02:34:11.812Z"
+      },
+      {
+        "id": "msg-1779676454102",
+        "role": "agent",
+        "text": "fff",
+        "createdAt": "2026-05-25T02:34:14.102Z"
+      },
+      {
+        "id": "msg-1779676455887",
+        "role": "agent",
+        "text": "fherth",
+        "createdAt": "2026-05-25T02:34:15.887Z"
+      },
+      {
+        "id": "msg-1779676912684-ijtw",
+        "role": "agent",
+        "text": "",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779676912665-4wwz5y.m4a",
+        "createdAt": "2026-05-25T02:41:52.684Z"
+      },
+      {
+        "id": "msg-1779676981000-0lcb",
+        "role": "agent",
+        "text": "",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779676980982-rcw7q5.m4a",
+        "createdAt": "2026-05-25T02:43:01.000Z"
+      },
+      {
+        "id": "msg-1779679872601-fkd8",
+        "role": "agent",
+        "text": "你好啊",
+        "imageUrl": "",
+        "audioUrl": "",
+        "createdAt": "2026-05-25T03:31:12.601Z"
+      },
+      {
+        "id": "msg-1779679910468-svpv",
+        "role": "agent",
+        "text": "How are you",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779679910455-zehj3d.m4a",
+        "createdAt": "2026-05-25T03:31:50.468Z"
+      },
+      {
+        "id": "msg-1779680272877-4nqc",
+        "role": "agent",
+        "text": "",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680272861-w4g7gj.m4a",
+        "createdAt": "2026-05-25T03:37:52.877Z"
+      },
+      {
+        "id": "msg-1779680304839-oa15",
+        "role": "agent",
+        "text": "哈喽哈喽My name is Bingo How are you today",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680304827-8pda96.m4a",
+        "createdAt": "2026-05-25T03:38:24.839Z"
+      },
+      {
+        "id": "msg-1779680338569-xz6j",
+        "role": "agent",
+        "text": "你好我是阿宾你今天过得怎么样",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680338556-iyqt07.m4a",
+        "createdAt": "2026-05-25T03:38:58.569Z"
+      },
+      {
+        "id": "msg-1779680402757-ekgz",
+        "role": "customer",
+        "text": "哈喽哈喽My name is Bingo How are you today today hell my Brock foot in hay FC",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680402743-ijesd4.m4a",
+        "createdAt": "2026-05-25T03:40:02.757Z"
+      },
+      {
+        "id": "msg-1779680443326-5zy8",
+        "role": "customer",
+        "text": "哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽哈喽",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680443316-y7rex2.m4a",
+        "createdAt": "2026-05-25T03:40:43.326Z"
+      },
+      {
+        "id": "msg-1779680523446-ogsb",
+        "role": "customer",
+        "text": "你好你好你好",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680523430-y3zo81.m4a",
+        "createdAt": "2026-05-25T03:42:03.446Z"
+      },
+      {
+        "id": "msg-1779680595074-k8sw",
+        "role": "customer",
+        "text": "Once how of one for",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680595054-3fapa6.m4a",
+        "createdAt": "2026-05-25T03:43:15.074Z"
+      },
+      {
+        "id": "msg-1779680724932-z25w",
+        "role": "customer",
+        "text": "I am my speak that me to come well be lot of concrete looking by was and it ex clay",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680724920-jzcwiy.m4a",
+        "createdAt": "2026-05-25T03:45:24.932Z"
+      },
+      {
+        "id": "msg-1779680958092-a6tt",
+        "role": "customer",
+        "text": "",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680958076-nmj07r.m4a",
+        "createdAt": "2026-05-25T03:49:18.092Z"
+      },
+      {
+        "id": "msg-1779680982026-4nen",
+        "role": "customer",
+        "text": "",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680982014-xnvmg5.m4a",
+        "createdAt": "2026-05-25T03:49:42.026Z"
+      },
+      {
+        "id": "msg-1779680988034-12w9",
+        "role": "customer",
+        "text": "你好啊你好你好你好你好",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779680988021-n3gdn7.m4a",
+        "createdAt": "2026-05-25T03:49:48.034Z"
+      },
+      {
+        "id": "msg-1779681014571-cl8x",
+        "role": "customer",
+        "text": "哈喽哈喽Was your name How are you how it going",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681014560-qqpbu1.m4a",
+        "createdAt": "2026-05-25T03:50:14.571Z"
+      },
+      {
+        "id": "msg-1779681241136-04p3",
+        "role": "customer",
+        "text": "哈喽哈喽ING OWhat's your nameWhat are you doingHow weather",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681241120-849ds1.m4a",
+        "createdAt": "2026-05-25T03:54:01.136Z"
+      },
+      {
+        "id": "msg-1779681332443-xdwr",
+        "role": "customer",
+        "text": "双低in the Fact of getting and what if if weI think a my hot it it to you ft not you might in some go to sing I just Siri和X boy Freddy Md谁上分啊我没上班angryPut you foot it it I cut my foot that shape a foot in it right it is not anyone但是",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681332430-7fys3r.m4a",
+        "createdAt": "2026-05-25T03:55:32.443Z"
+      },
+      {
+        "id": "msg-1779681396206-fd9y",
+        "role": "customer",
+        "text": "I don't to leave it",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681396197-r301em.m4a",
+        "createdAt": "2026-05-25T03:56:36.206Z"
+      },
+      {
+        "id": "msg-1779681431911-qrks",
+        "role": "customer",
+        "text": "I don't believe it I jump up from behind the car and stay at shining two doors sevenTapping his brakes every few seconds suddenly I feel at night heavy my stomach tightens up",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681431896-wzm07y.m4a",
+        "createdAt": "2026-05-25T03:57:11.911Z"
+      },
+      {
+        "id": "msg-1779681669679-s0mo",
+        "role": "customer",
+        "text": "Learning to be alone is not about yourself from the world it is about developing a comfortable honest relationship is your own company. In modern society is often stigmatized we rushed into relationships fear our calendars in social events or numb ourselves constant distractions or to avoid the discomfort of sitting quietly with our own sons",
+        "imageUrl": "",
+        "audioUrl": "/audio/1779681669666-o6auqr.m4a",
+        "createdAt": "2026-05-25T04:01:09.679Z"
+      }
+    ]
+  }
+]
