@@ -3,22 +3,30 @@ import Redis from 'ioredis';
 const INDEX_KEY = 'chat:index';
 
 function getRedisUrl() {
-  const url = process.env.KV_REST_API_REDIS_URL || process.env.KV_URL || '';
-  if (!url) throw new Error('No Redis/KV configuration found');
-  return url;
+  return process.env.KV_REST_API_REDIS_URL || process.env.KV_URL || '';
 }
 
-// Vercel KV (Upstash) — plain redis:// URL, no TLS needed locally
-const kv = new Redis(getRedisUrl(), {
-  connectTimeout: 10000,
-  retryStrategy: (times) => Math.min(times * 100, 3000),
-});
+// Lazy Redis client. Without KV/REDIS env vars we return null and every
+// operation degrades silently, so a missing config never breaks the build
+// at module load time (previously it threw "No Redis/KV configuration found").
+let kv: Redis | null = null;
 
-// Handle connection errors gracefully
-kv.on('error', (err: any) => {
-  if (err?.code === 'ECONNRESET' || err?.code === 'ETIMEDOUT') return;
-  console.warn('[redis]', err?.message);
-});
+function getClient(): Redis | null {
+  if (!kv) {
+    const url = getRedisUrl();
+    if (!url) return null;
+    kv = new Redis(url, {
+      connectTimeout: 10000,
+      retryStrategy: (times) => Math.min(times * 100, 3000),
+    });
+    // Handle connection errors gracefully
+    kv.on('error', (err: any) => {
+      if (err?.code === 'ECONNRESET' || err?.code === 'ETIMEDOUT') return;
+      console.warn('[redis]', err?.message);
+    });
+  }
+  return kv;
+}
 
 export interface ChatMessage {
   id: string;
@@ -49,8 +57,10 @@ function sessionKey(id: string) {
 }
 
 export async function readIndex(): Promise<SessionIndexEntry[]> {
+  const client = getClient();
+  if (!client) return [];
   try {
-    const data = await kv.get(INDEX_KEY);
+    const data = await client.get(INDEX_KEY);
     return data ? JSON.parse(data) : [];
   } catch {
     return [];
@@ -58,8 +68,10 @@ export async function readIndex(): Promise<SessionIndexEntry[]> {
 }
 
 export async function writeIndex(entries: SessionIndexEntry[]) {
+  const client = getClient();
+  if (!client) return;
   try {
-    await kv.set(INDEX_KEY, JSON.stringify(entries));
+    await client.set(INDEX_KEY, JSON.stringify(entries));
   } catch {
     // silently fail
   }
@@ -78,8 +90,10 @@ export async function updateIndexEntry(
 }
 
 export async function readSession(id: string): Promise<ChatSession | null> {
+  const client = getClient();
+  if (!client) return null;
   try {
-    const data = await kv.get(sessionKey(id));
+    const data = await client.get(sessionKey(id));
     return data ? JSON.parse(data) : null;
   } catch {
     return null;
@@ -87,16 +101,20 @@ export async function readSession(id: string): Promise<ChatSession | null> {
 }
 
 export async function writeSession(session: ChatSession) {
+  const client = getClient();
+  if (!client) return;
   try {
-    await kv.set(sessionKey(session.id), JSON.stringify(session));
+    await client.set(sessionKey(session.id), JSON.stringify(session));
   } catch {
     // silently fail
   }
 }
 
 export async function deleteSessionFile(id: string) {
+  const client = getClient();
+  if (!client) return;
   try {
-    await kv.del(sessionKey(id));
+    await client.del(sessionKey(id));
   } catch {
     // silently fail
   }
@@ -109,8 +127,10 @@ function heartbeatKey(sessionId: string) {
 }
 
 export async function updateSessionHeartbeat(sessionId: string): Promise<void> {
+  const client = getClient();
+  if (!client) return;
   try {
-    await kv.set(heartbeatKey(sessionId), String(Date.now()), 'EX', 90);
+    await client.set(heartbeatKey(sessionId), String(Date.now()), 'EX', 90);
   } catch {
     // silently fail
   }
@@ -119,9 +139,11 @@ export async function updateSessionHeartbeat(sessionId: string): Promise<void> {
 export async function getHeartbeats(sessionIds: string[]): Promise<Map<string, number>> {
   const map = new Map<string, number>();
   if (sessionIds.length === 0) return map;
+  const client = getClient();
+  if (!client) return map;
   try {
     const keys = sessionIds.map(heartbeatKey);
-    const values = await kv.mget(...keys);
+    const values = await client.mget(...keys);
     for (let i = 0; i < sessionIds.length; i++) {
       const val = values[i];
       if (val) {
